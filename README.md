@@ -99,4 +99,4 @@ npm run dev
 
 ---
 
-*Engineered with 🔬 by the DNA-Synthesizer Team*
+*Engineered by the DNA-Synthesizer Team*
