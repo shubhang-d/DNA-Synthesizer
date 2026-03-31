@@ -1,70 +1,102 @@
-# DNA Synthesizer 🧬
+# DNA-Synthesizer: Agentic Code Refactoring & Synthetic DNA Diffusion 🧬
 
-A hardware-aware **1D Diffusion Model** for generating cell-type-specific regulatory DNA sequences. 
+![DNA-Synthesizer Banner](placeholder-banner.png) <!-- Placeholder for a banner image -->
 
-This project trains a customized U-Net-based diffusion architecture to synthesize 200 base-pair resolution epigenetic DNA elements. It employs Classifier-Free Guidance (CFG) to condition on distinct cell types (e.g., K562, HepG2, GM12878, hESCT0), allowing controlled synthesis of biological sequence data.
+A state-of-the-art, hardware-aware platform combining artificial intelligence, next-gen 3D WebGL visualizations, and agentic workflows to generate cell-type-specific regulatory DNA sequences. 
 
-## 🚀 Key Features
-* 🧠 **Diffusion Pipeline:** Employs a continuous-time Gaussian Diffusion module (`GaussianDiffusion1D`) with linear beta scheduling over standard biological tensors.
-* 🧬 **Cell-Specific Conditioning:** Generates distinct binding/regulatory motifs specific to biological cell lines.
-* 🕹️ **Hardware Optimizations:** Fully tailored to run efficiently on low-VRAM GPUs (e.g., NVIDIA RTX 3050 4G) out of the box:
-  * Force-enabled **Mixed Precision (FP16)**.
-  * **Gradient Accumulation** (`steps=8`) to simulate massive batch sizes.
-  * **Thermal Protection:** Built-in sleep intervals between epochs to prevent laptop/compact GPU overheating.
-  * **VRAM Safety Controller:** Monitors and aggressively protects memory overhead during runtime.
+This project trains a customized 1D U-Net diffusion architecture to synthesize 200 base-pair resolution epigenetic DNA elements, wrapped in a premium, high-performance web interface.
 
 ---
 
-## 📂 Project Structure
+## 🚀 Key Features
 
-```text
-DNA-Synthesizer/
-├── data/
-│   └── genomic_data.tsv      # 19-column genomic TSV dataset (length 200bp)
-├── checkpoints/
-│   ├── model.safetensors                 # Periodic training backups
-│   └── dna_diffusion_final.safetensors   # Final model weights
-├── src/
-│   ├── train.py              # Main accelerate training loop and data loading
-│   ├── model.py              # Contains UNet1D, Attention, Resnet, and Embedding layers
-│   ├── diffusion.py          # Forward and reverse diffusion sampling schedules
-│   └── generate_results.py   # Synthesis script to generate new sequences from weights
-└── README.md
-```
+| Feature | Description |
+| :--- | :--- |
+| **🧬 Synthetic Sequence Generation** | A robust 1D Diffusion model utilizing Classifier-Free Guidance (CFG) for distinct cell-line generation (e.g., K562, HepG2, GM12878). Fully optimized for low-VRAM inference and training. |
+| **✨ 3D 'Quantum Amethyst' Visualization** | A stunning, real-time WebGL molecular visualizer. Features procedural particle fields, dynamic bloom rendering, and interactive UI tilting driven by a dark indigo and violet clinical aesthetic. |
+| **🤖 Agentic Technical Debt Auditing** | Intelligent agentic support designed for auto-analyzing the codebase to resolve technical debt, enforce scalable architectures, and maintain peak code health (CloudCode). |
 
-## ⚙️ Installation
+---
 
-We use [uv](https://github.com/astral-sh/uv) as our primary package and environment manager. Ensure you have PyTorch installed with proper CUDA dependencies.
+## 🛠️ Tech Stack
+
+This project bridges a heavy machine learning backend with an ultra-responsive frontend. 
+
+**Frontend (Client)**
+* **Next.js & React 19** - Framework for dynamic rendering and routing.
+* **React-Three-Fiber & Three.js** - For deploying complex 3D molecular meshes directly to the browser.
+* **Tailwind CSS v4 & Framer Motion** - Powering the "Obsidian Developer Terminal" and glassmorphism styling with butter-smooth micro-animations.
+
+**Backend (Server)**
+* **Python 3.12+ (UV Environment)** - High-speed package management and environment isolation.
+* **PyTorch & Accelerate** - Model training, precision FP16 scheduling, and gradient accumulation.
+* **DNA-Diffusion Models** - 1D Continuous Gaussian Diffusion architecture.
+* **Flask** - A lightweight API layer serving sequence generation to the client.
+
+---
+
+## 📸 UI Screenshots
+
+> **Note:** Below are placeholders for the new **'Obsidian Developer Terminal'** featuring the Quantum Amethyst aesthetics.
+
+<div align="center">
+  <img src="placeholder-screenshot-1.png" alt="Quantum Amethyst 3D Visualization" width="45%" />
+  <img src="placeholder-screenshot-2.png" alt="Clinical Indigo UI Terminal" width="45%" />
+</div>
+
+---
+
+## 🏗️ Architecture: The AI-to-WebGL Bridge
+
+The architecture is split into two asynchronous environments:
+
+1. **The Inference Engine (Python/Flask)**: Listens continuously on `127.0.0.1:5000`. Upon receiving generation parameters (cell line type and count), it unfreezes the safetensor checkpoints and routes the noise map through the reverse diffusion process.
+2. **The Clinical Dashboard (Next.js/R3F)**: Resides on `localhost:3000`. It dispatches API requests while actively managing a heavy WebGL processing pipeline. The data matrix "decodes" the returned bases visually through a scrambled text effect, keeping the user immersed while the DNA object spins up and brightens based on generation state.
+
+---
+
+## ⚙️ Installation & Usage
+
+To run the full stack, you must launch both servers simultaneously. Follow the instructions below to get your local environment running.
+
+### 1. Python Backend (Machine Learning API)
+
+We use [uv](https://github.com/astral-sh/uv) to wrangle the Python ecosystem.
 
 ```bash
 # Clone the repository
 git clone https://github.com/your-username/dna-synthesizer.git
 cd dna-synthesizer
 
-# Ensure you have the required dependencies (uv sync if pyproject.toml is setup)
-uv pip install torch accelerate safetensors einops tqdm
+# Ensure you have the required dependencies
+uv pip install torch accelerate safetensors einops flask flask-cors tqdm
+
+# Launch the generation API
+uv run python src/api.py
 ```
+> ✅ You should see an output on port `5000` confirming the backend is ready.
 
-## 🏋️ Training the Model
-
-The training script automatically locates your raw TSV sequences `data/genomic_data.tsv`. To launch a training block:
-
+*(Optional Training)*: If you wish to retrain the diffusion models locally:
 ```bash
 uv run accelerate launch src/train.py
 ```
 
-**Resuming capability:** `train.py` automatically checks for `checkpoints/model.safetensors` on startup. If found, it safely unpacks the weights to resume training right where it crashed or exited—perfect for hardware-limited workflows!
+### 2. Next.js Frontend (Clinical Dashboard)
 
-## 🧪 Inference (Generating DNA)
-
-Once your model has concluded training or you wish to sample from a saved state, run the generation script. By default, it generates `5` sequences for class `0` (K562):
+Open a **new, entirely separate terminal window** and navigate into the `frontend` directory.
 
 ```bash
-uv run python src/generate_results.py
+cd frontend
+
+# Install the necessary Node packages
+npm install
+
+# Boot up the interactive Next.js dashboard
+npm run dev
 ```
 
-### Supported Cell Target Mappings:
-* `0`: K562
-* `1`: HepG2
-* `2`: GM12878
-* `3`: hESCT0
+> 🌐 The interface will successfully mount on `http://localhost:3000`. You can now select your cell target strings and witness the generation process firsthand!
+
+---
+
+*Engineered with 🔬 by the DNA-Synthesizer Team*

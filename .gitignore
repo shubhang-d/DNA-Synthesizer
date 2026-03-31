@@ -17,3 +17,9 @@ data/
 .venv/
 __pycache__/
 *.safetensors
+
+# Local Editor Settings
+.vscode/
+
+# Next.js Build Output
+.next/
