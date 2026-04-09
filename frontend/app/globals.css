@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --accent-cyan: #22d3ee;
+  --accent-green: #10b981;
+  
+  --glass-bg: rgba(0, 8, 20, 0.7);
+  --glass-border: rgba(34, 211, 238, 0.3);
+}
+
+html, body {
+  background-color: #000000 !important;
+  color: #22d3ee !important;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dna-gradient-text {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Custom Scrollbar for Terminal */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(30, 41, 59, 1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(51, 65, 85, 1);
+}
+
+/* AAA Enhancements */
+.scanlines {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(34, 211, 238, 0.08) 50%,
+    rgba(34, 211, 238, 0.08)
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  animation: scrollDown 10s linear infinite;
+}
+
+@keyframes scrollDown {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
+
+.bg-grid {
+  background-image: 
+    linear-gradient(to right, rgba(16, 185, 129, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(16, 185, 129, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: linear-gradient(to bottom, transparent, black, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black, transparent);
+  pointer-events: none;
+}
