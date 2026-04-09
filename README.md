@@ -1,4 +1,6 @@
-This is an AI-based driver safety risk prediction system built with Next.js, React, Tailwind CSS, Prisma, and Stripe. The project includes live driver risk detection, analytics dashboards, accident prediction, model upload, and user authentication.
+# Designing Synthetic Regulatory DNA Elements Using DNA Diffusion Models
+
+This repository contains the web platform and interface for generating and analyzing synthetic regulatory DNA elements using advanced DNA diffusion models. It includes the frontend dashboard, sequencing input portals, in-silico validation metrics, and model analytics built with Next.js, React, and Tailwind CSS.
 
 ## Getting Started
 

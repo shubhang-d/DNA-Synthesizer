@@ -1,10 +1,7 @@
 "use client";
 
 import { Geist, Geist_Mono } from "next/font/google";
-import { useState } from "react";
 import Providers from "../src/components/Providers";
-import Sidebar from "../src/components/Sidebar";
-import DashboardLayout from "../src/components/DashboardLayout";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,18 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export default function RootLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0b0f19] text-white`}
       >
         <Providers>
-          <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-          <DashboardLayout sidebarOpen={sidebarOpen}>
-            {children}
-          </DashboardLayout>
+          {children}
         </Providers>
       </body>
     </html>

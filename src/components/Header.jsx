@@ -9,34 +9,30 @@ export default function Header() {
   const status = sess?.status;
 
   return (
-    <nav className="max-w-3xl mx-auto flex items-center justify-between p-4 bg-blue-600 text-white">
-      <Link href="/" className="font-bold text-xl">
-        AI Driver Safety
+    <nav className="max-w-7xl mx-auto flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 text-white">
+      <Link href="/" className="font-semibold text-lg text-white">
+        DNA Diffusion Platform
       </Link>
-      <div className="space-x-4 flex items-center">
-        <Link href="/">Home</Link>
-        <Link href="/dashboard">Dashboard</Link>
-        <Link href="/live-risk">Live Risk Detection</Link>
-        <Link href="/analytics">Analytics</Link>
-        <Link href="/alerts">Alert History</Link>
-        <Link href="/predictor">Accident Predictor</Link>
-        <Link href="/model-upload">Model Upload</Link>
+      <div className="space-x-6 flex items-center text-sm font-medium text-slate-300">
+        <Link href="/" className="hover:text-white transition-colors">Home</Link>
+        <Link href="/dashboard" className="hover:text-white transition-colors">Platform</Link>
+        <Link href="/docs" className="hover:text-white transition-colors">Documentation</Link>
         {status === "authenticated" ? (
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="ml-4"
+            className="ml-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors text-white"
           >
-            Logout
+            Sign out
           </button>
         ) : (
-          <>
-            <Link href="/auth/login" className="ml-4">
-              Login
+          <div className="flex items-center gap-2 ml-4">
+            <Link href="/auth/login" className="px-4 py-2 hover:bg-slate-800 rounded-lg transition-colors">
+              Log in
             </Link>
-            <Link href="/auth/register" className="ml-2">
-              Register
+            <Link href="/auth/register" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-white">
+              Get Started
             </Link>
-          </>
+          </div>
         )}
       </div>
     </nav>

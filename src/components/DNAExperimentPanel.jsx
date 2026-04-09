@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronRight, Loader2, Play } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
+import { AreaChart, Area, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 
 export default function DNAExperimentPanel() {
   const [sequence, setSequence] = useState("");
@@ -9,14 +10,11 @@ export default function DNAExperimentPanel() {
   const [score, setScore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [heatmapColors, setHeatmapColors] = useState([]);
+  const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
-    // Initial random heatmap
-    const colors = Array.from({ length: 120 }, () =>
-      `rgba(59,130,246,${Math.random() * 0.2})`
-    );
-    setHeatmapColors(colors);
+    const initData = Array.from({ length: 50 }, (_, i) => ({ index: i, score: Math.random() * 5 }));
+    setChartData(initData);
   }, []);
 
   const generate = () => {
@@ -31,7 +29,6 @@ export default function DNAExperimentPanel() {
     const mockResult = "ATGC" + Array.from({length: 46}, () => ["A", "T", "G", "C"][Math.floor(Math.random() * 4)]).join("");
     const targetScore = (70 + Math.random() * 28).toFixed(1);
 
-    // Simulate progress
     const timer = setInterval(() => {
       setProgress((old) => {
         const next = old + Math.random() * 15;
@@ -48,7 +45,14 @@ export default function DNAExperimentPanel() {
   const finishGeneration = (mockResult, targetScore) => {
     setScore(targetScore);
     
-    // Animate typing of sequence
+    // Generate data matching sequence length
+    const data = Array.from({ length: mockResult.length }, (_, i) => {
+      const isHot = Math.random() > 0.85;
+      let baseScore = Math.random() * 20 + 10;
+      if (isHot) baseScore += Math.random() * 50 + 30; // peak
+      return { index: i, score: baseScore };
+    });
+
     let currentText = "";
     let i = 0;
     const typeTimer = setInterval(() => {
@@ -58,36 +62,46 @@ export default function DNAExperimentPanel() {
       if (i === mockResult.length) {
         clearInterval(typeTimer);
         setLoading(false);
-        // generate a highly active heatmap
-        const colors = Array.from({ length: 120 }, () => {
-           const isHot = Math.random() > 0.8;
-           return isHot ? `rgba(244,114,182,${0.5 + Math.random() * 0.5})` : `rgba(0,212,255,${0.2 + Math.random() * 0.5})`;
-        });
-        setHeatmapColors(colors);
+        setChartData(data);
       }
-    }, 20);
+    }, 30);
+  };
+
+  const renderAnnotatedSequence = () => {
+    return generatedSequence.split("").map((char, index) => {
+      let colorClass = "text-slate-400";
+      if (char === "A" || char === "T") colorClass = "text-indigo-300";
+      if (char === "G" || char === "C") colorClass = "text-emerald-300";
+
+      const dataPoint = chartData[index];
+      const isHot = dataPoint && dataPoint.score > 60;
+      const highlight = isHot && !loading ? "bg-indigo-500/20 shadow-[0_2px_0_0_#4f46e5] font-bold" : "";
+
+      return (
+        <span key={index} className={`inline-block w-3 text-center ${colorClass} ${highlight} transition-all duration-300`}>
+          {char}
+        </span>
+      );
+    });
   };
 
   return (
-    <section className="py-20 px-8 relative">
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-transparent to-transparent pointer-events-none"></div>
-      
+    <section className="py-20 px-4 md:px-8 relative bg-slate-900 border-b border-slate-800">
       <div className="text-center mb-12 relative z-10">
-        <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 mb-4 drop-shadow-lg">
-          Diffusion Experiment Panel
+        <h2 className="text-3xl font-bold text-white mb-4">
+          In-Silico Evaluation Panel
         </h2>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          Input a base sequence or upload your data to generate optimized synthetic regulatory variants with our AI pipeline.
+        <p className="text-slate-400 max-w-2xl mx-auto">
+          Input a base sequence or upload your data to generate optimized synthetic regulatory variants via the fine-tuned diffusion model.
         </p>
       </div>
 
-      <div className="max-w-4xl mx-auto flex flex-col space-y-8 bg-slate-900/40 p-8 rounded-3xl border border-slate-700/50 backdrop-blur-xl relative z-10 shadow-[0_0_40px_rgba(0,212,255,0.05)] border-t-cyan-500/20">
+      <div className="max-w-4xl mx-auto flex flex-col space-y-6 bg-slate-800/80 p-6 md:p-8 rounded-xl border border-slate-700 shadow-sm relative z-10">
         <div className="relative group">
-          <label className="text-sm text-cyan-400 font-semibold mb-2 block uppercase tracking-wider transition-all group-focus-within:text-cyan-300">Input Sequence</label>
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl opacity-0 group-focus-within:opacity-20 transition duration-500 blur"></div>
+          <label className="text-xs text-slate-400 font-semibold mb-2 block uppercase tracking-wider">Input Sequence (FASTA Format)</label>
           <textarea
-            className="w-full p-4 bg-[#0b0f19]/80 text-gray-200 rounded-xl border border-slate-600 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 outline-none transition-all duration-300 font-mono text-sm leading-relaxed resize-none shadow-inner relative z-10"
-            rows={4}
+            className="w-full p-4 bg-slate-900 text-slate-200 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all duration-200 font-mono text-sm leading-relaxed resize-none shadow-inner"
+            rows={3}
             placeholder="Enter FASTA/GenBank sequence here..."
             value={sequence}
             onChange={(e) => setSequence(e.target.value)}
@@ -98,80 +112,84 @@ export default function DNAExperimentPanel() {
         <button
           onClick={generate}
           disabled={loading}
-          className={`self-end inline-flex items-center gap-3 px-8 py-4 rounded-xl font-bold transition-all duration-300 shadow-lg ${loading ? 'bg-slate-700 text-slate-400 cursor-not-allowed border border-slate-600' : 'bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(0,212,255,0.2)] border border-transparent hover:border-cyan-400/50'}`}
+          className={`self-end inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors duration-200 ${loading ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'}`}
         >
           {loading ? (
              <>
-               <Loader2 className="w-5 h-5 animate-spin" />
+               <Loader2 className="w-4 h-4 animate-spin" />
                Processing...
              </>
           ) : (
              <>
-               <Play className="w-5 h-5 fill-current" />
-               Generate Synthetic Variant
+               <Play className="w-4 h-4 fill-current" />
+               Run Diffusion Protocol
              </>
           )}
         </button>
 
         {loading && progress < 100 && (
-          <div className="w-full animate-[pulse-glow_2s_ease-in-out_infinite]">
-            <div className="flex justify-between text-xs text-cyan-400 mb-2 font-mono">
-              <span className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin"/> INITIALIZING DIFFUSION MODEL</span>
+          <div className="w-full mt-4">
+            <div className="flex justify-between text-xs text-indigo-400 mb-2 font-mono">
+              <span className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin"/> INITIALIZING...</span>
               <span>{Math.floor(progress)}%</span>
             </div>
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner p-[1px] border border-slate-700">
-               <div className="h-full bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 transition-all duration-300 relative rounded-full" style={{width: `${progress}%`}}>
-                  <div className="absolute top-0 right-0 bottom-0 left-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-[flow_1s_linear_infinite]"></div>
+            <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden shrink-0">
+               <div className="h-full bg-indigo-500 transition-all duration-300 relative rounded-full" style={{width: `${progress}%`}}>
                </div>
             </div>
           </div>
         )}
 
         {(generatedSequence || score !== null) && (
-          <div className="mt-8 pt-8 border-t border-slate-700/50 animate-[float_3s_ease-in-out_infinite] [animation-iteration-count:1]">
+          <div className="mt-6 pt-6 border-t border-slate-700">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                <div>
-                  <label className="text-sm text-purple-400 font-semibold mb-2 block uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping"></span> Generated Output
+                  <label className="text-xs text-slate-400 font-semibold mb-2 flex justify-between uppercase tracking-wider">
+                    <span>Generated Output Sequence</span>
+                    {!loading && <span className="text-indigo-400 lowercase tracking-normal font-mono text-[10px]">Motifs Annotated</span>}
                   </label>
-                  <div className="p-4 bg-[#0b0f19] rounded-xl border border-purple-500/30 font-mono text-sm text-gray-300 break-all min-h-[120px] shadow-[inset_0_0_20px_rgba(139,92,246,0.1)] relative group">
-                     {generatedSequence}
-                     {loading && <span className="inline-block w-2 h-4 ml-1 bg-cyan-400 animate-pulse"></span>}
-                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500/5 to-purple-500/10 pointer-events-none rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="p-4 bg-slate-900 rounded-lg border border-slate-700 font-mono text-sm text-slate-300 break-all min-h-[140px] shadow-inner relative leading-loose tracking-widest">
+                     {renderAnnotatedSequence()}
+                     {loading && <span className="inline-block w-2 h-4 ml-1 bg-indigo-400 animate-pulse"></span>}
                   </div>
                </div>
 
                <div>
-                 <p className="text-sm text-pink-400 font-semibold mb-2 uppercase tracking-wider">Predicted Expression Score</p>
-                 <div className="flex items-end gap-4 mb-4">
-                    <span className="text-5xl font-bold bg-gradient-to-tr from-pink-400 to-cyan-400 text-transparent bg-clip-text animate-[neon-glow_2s_infinite]">
+                 <p className="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-wider">Predicted Expression Strength</p>
+                 <div className="flex items-end gap-3 mb-3">
+                    <span className="text-4xl font-bold text-white">
                       {score || "0.0"}
                     </span>
-                    <span className="text-gray-400 pb-1">/ 100</span>
+                    <span className="text-slate-500 pb-1 font-mono">/ 100</span>
                  </div>
                  
-                 <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden shadow-inner mb-6 relative">
+                 <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mb-6">
                    <div
-                     className="h-full bg-gradient-to-r from-pink-500 to-cyan-500 transition-all duration-1000 shadow-[0_0_10px_rgba(244,114,182,0.5)]"
+                     className="h-full bg-emerald-500 transition-all duration-1000"
                      style={{ width: `${score || 0}%` }}
                    ></div>
                  </div>
 
-                 <p className="text-sm text-cyan-400 font-semibold mb-2 uppercase tracking-wider flex justify-between">
-                    <span>Binding Site Heatmap</span>
-                 </p>
-                 <div className="w-full h-24 bg-[#0b0f19] rounded-lg border border-slate-700/80 relative overflow-hidden group">
-                   <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:10px_10px] z-10 pointer-events-none"></div>
-                   
-                   <div className="absolute inset-0 grid grid-cols-20 grid-rows-6 transition-all duration-1000">
-                     {heatmapColors.map((color, i) => (
-                       <div
-                         key={i}
-                         className="w-full h-full transition-colors duration-1000 border-r border-b border-transparent hover:bg-white/20"
-                         style={{ backgroundColor: color }}
-                       />
-                     ))}
-                   </div>
+                 <p className="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-wider">Attention Score Distribution</p>
+                 <div className="w-full h-24 bg-slate-900 rounded-lg border border-slate-700 relative overflow-hidden pt-2 pl-[-10px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -40, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <YAxis domain={['dataMin', 'dataMax + 20']} hide />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '4px', color: '#c7d2fe', fontSize: '12px' }}
+                          itemStyle={{ color: '#818cf8' }}
+                          labelStyle={{ display: 'none' }}
+                          cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        />
+                        <Area type="monotone" dataKey="score" stroke="#6366f1" fillOpacity={1} fill="url(#colorScore)" isAnimationActive={!loading} />
+                      </AreaChart>
+                    </ResponsiveContainer>
                  </div>
                </div>
             </div>
