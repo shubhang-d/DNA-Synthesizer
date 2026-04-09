@@ -1,4 +1,4 @@
-This is a custom DNA synthesis platform built with Next.js, React, Tailwind CSS, Prisma, and Stripe. The project was scaffolded based on a detailed project prompt and includes order forms, user authentication, and administrative tools.
+This is an AI-based driver safety risk prediction system built with Next.js, React, Tailwind CSS, Prisma, and Stripe. The project includes live driver risk detection, analytics dashboards, accident prediction, model upload, and user authentication.
 
 ## Getting Started
 
