@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0b0f19;
+  --foreground: #ffffff;
+  --card-bg: #111827;
+  --accent-cyan: #00d4ff;
+  --accent-purple: #8b5cf6;
+  --accent-blue: #3b82f6;
+  --neon-cyan: #00ffff;
+  --neon-purple: #c084fc;
+  --neon-pink: #f472b6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card-bg: var(--card-bg);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-purple: var(--accent-purple);
+  --color-accent-blue: var(--accent-blue);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-purple: var(--neon-purple);
+  --color-neon-pink: var(--neon-pink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Enhanced neon animations */
+@keyframes neon-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(0, 255, 255, 0.5),
+      0 0 10px rgba(0, 255, 255, 0.5),
+      0 0 15px rgba(0, 255, 255, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(0, 255, 255, 0.8),
+      0 0 20px rgba(0, 255, 255, 0.8),
+      0 0 30px rgba(0, 255, 255, 0.8),
+      0 0 40px rgba(139, 92, 246, 0.6);
+  }
+}
+
+@keyframes border-glow {
+  0%, 100% {
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+  50% {
+    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(139, 92, 246, 0.3);
+  }
+}
+
+@keyframes flow {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  50% {
+    border-color: rgba(0, 255, 255, 0.9);
+  }
+}
+
+@keyframes data-flow {
+  0% {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+}
+
+@keyframes node-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), 0 0 40px rgba(139, 92, 246, 0.4);
+  }
+}
+
+/* Custom animations for futuristic effects */
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.6), 0 0 40px rgba(139, 92, 246, 0.4);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-neon-glow {
+  animation: neon-glow 2s ease-in-out infinite;
+}
+
+.animate-border-glow {
+  animation: border-glow 3s ease-in-out infinite;
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+.animate-node-pulse {
+  animation: node-pulse 4s ease-in-out infinite;
+}
+
+.animate-data-flow {
+  animation: data-flow 2s ease-in-out infinite;
+}
+
+/* Flowing connection effect */
+.flowing-connection {
+  position: relative;
+  overflow: hidden;
+}
+
+.flowing-connection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
+  animation: flow 2s linear infinite;
+}
+
+/* Glassmorphism effect */
+.glass {
+  backdrop-filter: blur(10px);
+  background: rgba(17, 24, 39, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+/* Neon gradient backgrounds */
+.neon-gradient-cyan {
+  background: linear-gradient(135deg, #00ffff, #00d4ff, #0099cc);
+}
+
+.neon-gradient-purple {
+  background: linear-gradient(135deg, #c084fc, #8b5cf6, #6d28d9);
+}
+
+.neon-gradient-pink {
+  background: linear-gradient(135deg, #f472b6, #ec4899, #be185d);
+}
+
+.neon-gradient-rainbow {
+  background: linear-gradient(135deg, #00ffff, #c084fc, #f472b6, #00d4ff);
+}
+
+/* Grid background pattern */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Holographic effect */
+.holographic {
+  background: linear-gradient(135deg,
+    rgba(0, 255, 255, 0.1),
+    rgba(139, 92, 246, 0.1),
+    rgba(244, 114, 182, 0.1),
+    rgba(0, 212, 255, 0.1)
+  );
+  position: relative;
+}
+
+.holographic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Cyberpunk glow */
+.cyber-glow {
+  position: relative;
+}
+
+.cyber-glow::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #00ffff, #c084fc, #f472b6, #00d4ff);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cyber-glow:hover::before {
+  opacity: 0.8;
+  animation: rotate-glow 2s linear infinite;
+}
+
+@keyframes rotate-glow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Data stream effect */
+.data-stream {
+  position: relative;
+  overflow: hidden;
+}
+
+.data-stream::after {
+  content: '0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+  animation: data-scroll 8s linear infinite;
+  font-family: monospace;
+  font-size: 10px;
+  color: rgba(0, 255, 255, 0.3);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+@keyframes data-scroll {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
