@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -40,7 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-=======
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -66,4 +65,4 @@ __pycache__/
 
 # Next.js Build Output
 .next/
->>>>>>> origin/main
+

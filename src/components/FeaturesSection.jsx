@@ -1,5 +1,5 @@
 import React from 'react';
-import FeatureCard from './FeatureCard';
+import FeatureOrbit from './FeatureOrbit';
 
 const features = [
   {
@@ -37,20 +37,21 @@ const FeaturesSection = () => {
       </div>
       
       <div className="max-w-7xl mx-auto text-center relative z-10">
-        <div className="mb-16">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight mb-6">
-            Platform Features
-          </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Complete end-to-end pipeline for AI-driven synthetic regulatory DNA design
-          </p>
+        <div className="mb-16 grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-10 items-center text-left">
+          <div>
+            <p className="mb-4 inline-flex rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-cyan-200">
+              Research workflow
+            </p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent tracking-tight mb-6">
+              Platform Features
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl">
+              Complete end-to-end pipeline for AI-driven synthetic regulatory DNA design
+            </p>
+          </div>
+          <FeatureOrbit features={features} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <FeatureCard key={index} {...feature} />
-          ))}
-        </div>
       </div>
     </section>
   );

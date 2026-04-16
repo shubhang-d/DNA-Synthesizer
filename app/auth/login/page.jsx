@@ -6,7 +6,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { Brain, Fingerprint } from "lucide-react";
+import { Fingerprint } from "lucide-react";
+import { Vortex } from "../../../src/components/ui/vortex";
 
 const schema = z.object({
   email: z.string().email("Invalid email"),
@@ -16,7 +17,6 @@ const schema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const sess = useSession();
-  const session = sess?.data;
   const status = sess?.status;
   const [loading, setLoading] = useState(false);
 
@@ -50,11 +50,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-indigo-900/20 p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+    <div className="min-h-screen bg-slate-950">
+      <Vortex
+        backgroundColor="#020617"
+        rangeY={700}
+        particleCount={240}
+        baseHue={165}
+        className="min-h-screen flex items-center justify-center p-4"
+      >
+      <div className="w-full max-w-5xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/70 rounded-2xl shadow-2xl shadow-emerald-900/10 p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         {/* Left: illustration + intro */}
         <div className="flex flex-col items-start gap-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
             <Fingerprint className="w-8 h-8" />
           </div>
           <div>
@@ -65,7 +72,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right: form */}
-        <div className="bg-slate-800/30 p-8 rounded-2xl border border-slate-700/50">
+        <div className="bg-slate-950/45 p-8 rounded-2xl border border-slate-700/60 shadow-xl shadow-black/20">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Researcher Node Email</label>
@@ -115,6 +122,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      </Vortex>
     </div>
   );
 }

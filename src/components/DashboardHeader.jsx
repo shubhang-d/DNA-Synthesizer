@@ -1,12 +1,12 @@
  "use client";
 
 import { useState } from 'react';
-import { Search, Bell, User, ChevronDown, Settings, CreditCard, FileText, LogOut, Brain } from 'lucide-react';
+import { Search, Bell, User, Settings, CreditCard, FileText, LogOut, Brain } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import ProfileModal from './ProfileModal';
 
-export default function DashboardHeader({ sidebarOpen, setSidebarOpen }) {
+export default function DashboardHeader() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: session } = useSession();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -108,28 +108,28 @@ export default function DashboardHeader({ sidebarOpen, setSidebarOpen }) {
                            <User className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
                            <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Profile Settings</span>
                        </button>
-                       <button className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
+                       <Link href="/dashboard/model-training" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
                            <Brain className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
                            <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Model</span>
                            <span className="ml-auto text-xs font-medium rounded-md py-1 px-2 text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 tracking-tight">
                                DNA v2.0
                            </span>
-                       </button>
-                       <button className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
+                       </Link>
+                       <Link href="/dashboard/settings" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
                            <CreditCard className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
                            <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Subscription</span>
                            <span className="ml-auto text-xs font-medium rounded-md py-1 px-2 text-purple-400 bg-purple-500/10 border border-purple-500/20 tracking-tight">
                                PRO
                            </span>
-                       </button>
-                       <button className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
+                       </Link>
+                       <Link href="/dashboard/settings" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
                            <Settings className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
                            <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Settings</span>
-                       </button>
-                       <button className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
+                       </Link>
+                       <Link href="/dashboard/experiments" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
                            <FileText className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
-                           <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Terms & Policies</span>
-                       </button>
+                           <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Experiment Reports</span>
+                       </Link>
                    </div>
                    
                    <div className="my-3 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
