@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Brain, Settings, CreditCard, FileText, LogOut, Hexagon } from 'lucide-react';
+import { User, Brain, Settings, CreditCard, LogOut, Hexagon } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useState } from 'react';
