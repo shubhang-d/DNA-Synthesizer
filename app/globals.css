@@ -298,3 +298,32 @@ body {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* ── Synthesizer page overlays (from frontend) ── */
+.synth-scanlines {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(34, 211, 238, 0.08) 50%,
+    rgba(34, 211, 238, 0.08)
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  animation: synth-scrollDown 10s linear infinite;
+}
+
+@keyframes synth-scrollDown {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
+
+.synth-bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(16, 185, 129, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(16, 185, 129, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: linear-gradient(to bottom, transparent, black, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black, transparent);
+  pointer-events: none;
+}
