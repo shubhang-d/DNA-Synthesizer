@@ -14,32 +14,28 @@ from diffusion import GaussianDiffusion1D
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Force explicit CUDA to keep CPU free and load into high performance memory
-device = torch.device('mps')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = None
 diffusion = None
 
 def init_model():
     global model, diffusion
-    print("Initializing DNA Diffusion Model on CUDA in FP16...")
-    
+    print(f"Initializing DNA Diffusion Model on {device}...")
+
     _model = UNet1D(seq_len=200, channels=4, dim=64, num_classes=4)
     _diffusion = GaussianDiffusion1D(_model, seq_len=200, channels=4, timesteps=50)
 
-    checkpoint_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "checkpoints", "dna_diffusion_final.safetensors")
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    checkpoint_path = os.path.join(src_dir, "dna_diffusion_final.safetensors")
     if os.path.exists(checkpoint_path):
         state_dict = load_file(checkpoint_path)
         _model.load_state_dict(state_dict)
+        print("Model weights loaded.")
     else:
-        # Fallback to model.safetensors if final is absent
-        fallback_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "checkpoints", "model.safetensors")
-        if os.path.exists(fallback_path):
-            state_dict = load_file(fallback_path)
-            _model.load_state_dict(state_dict)
+        print(f"WARNING: checkpoint not found at {checkpoint_path}, using random weights.")
 
-    # Move to CUDA and forcibly cast to FP16 to keep VRAM low
-    _model.to(device).half()
-    _diffusion.to(device).half()
+    _model.to(device)
+    _diffusion.to(device)
     _model.eval()
     
     model = _model
@@ -63,8 +59,7 @@ def generate():
         classes = torch.full((batch_size,), cell_type, device=device, dtype=torch.long)
         
         with torch.no_grad():
-            with torch.amp.autocast('mps', dtype=torch.float16):
-                generated_tensor = diffusion.sample(classes=classes, batch_size=batch_size, cfg_scale=3.0)
+            generated_tensor = diffusion.sample(classes=classes, batch_size=batch_size, cfg_scale=3.0)
         
         indices = torch.argmax(generated_tensor, dim=1)
         
@@ -85,4 +80,5 @@ def generate():
         return jsonify({"error": str(e), "status": "failed"}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)
