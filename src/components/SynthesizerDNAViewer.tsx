@@ -88,7 +88,8 @@ const ParticleField = () => {
   const particles = useRef<Particle[]>(INITIAL_PARTICLES.map(p => ({ ...p })));
 
   useFrame(() => {
-    if (!mesh.current) return;
+    const instancedMesh = mesh.current;
+    if (!instancedMesh) return;
     particles.current.forEach((particle, i) => {
       const { factor, speed, xFactor, yFactor, zFactor } = particle;
       particle.t += speed / 2;
@@ -108,9 +109,9 @@ const ParticleField = () => {
       dummy.current.scale.set(s, s, s);
       dummy.current.rotation.set(s * 5, s * 5, s * 5);
       dummy.current.updateMatrix();
-      mesh.current.setMatrixAt(i, dummy.current.matrix);
+      instancedMesh.setMatrixAt(i, dummy.current.matrix);
     });
-    mesh.current.instanceMatrix.needsUpdate = true;
+    instancedMesh.instanceMatrix.needsUpdate = true;
   });
 
   return (
