@@ -1,18 +1,12 @@
 import path from "node:path";
 import { defineConfig } from "prisma/config";
+import dotenv from "dotenv";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 export default defineConfig({
-  earlyAccess: true,
   schema: path.join("prisma", "schema.prisma"),
   datasource: {
-    url: `file:${path.join("prisma", "dev.db")}`,
-  },
-  migrate: {
-    async adapter() {
-      const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
-      const Database = (await import("better-sqlite3")).default;
-      const db = new Database(path.join(process.cwd(), "prisma", "dev.db"));
-      return new PrismaBetterSqlite3(db);
-    },
+    url: process.env.DATABASE_URL!,
   },
 });

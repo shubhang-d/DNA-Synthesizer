@@ -7,7 +7,6 @@ import DNAOrderForm from "@/components/DNAOrderForm";
 
 export default function OrderPage() {
   const sess = useSession();
-  const session = sess?.data;
   const status = sess?.status;
   const router = useRouter();
 

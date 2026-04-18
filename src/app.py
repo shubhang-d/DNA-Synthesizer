@@ -15,7 +15,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Force explicit CUDA to keep CPU free and load into high performance memory
-device = torch.device('cuda')
+device = torch.device('mps')
 model = None
 diffusion = None
 
@@ -63,7 +63,7 @@ def generate():
         classes = torch.full((batch_size,), cell_type, device=device, dtype=torch.long)
         
         with torch.no_grad():
-            with torch.amp.autocast('cuda', dtype=torch.float16):
+            with torch.amp.autocast('mps', dtype=torch.float16):
                 generated_tensor = diffusion.sample(classes=classes, batch_size=batch_size, cfg_scale=3.0)
         
         indices = torch.argmax(generated_tensor, dim=1)

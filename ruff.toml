@@ -1,0 +1,8 @@
+[lint]
+# E501 = line too long (ML code often has long lines)
+# F401 = unused imports (common in ML notebooks/scripts)
+# F841 = local variable assigned but never used
+ignore = ["E501", "F401", "F841"]
+
+[lint.per-file-ignores]
+"src/train.py" = ["E402"]  # module-level imports not at top (common in ML scripts)

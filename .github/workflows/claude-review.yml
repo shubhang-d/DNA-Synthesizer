@@ -1,0 +1,97 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+
+jobs:
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin main --depth=50
+
+      - name: Get PR diff
+        run: |
+          git diff origin/main...HEAD -- \
+            '*.ts' '*.tsx' '*.jsx' '*.js' '*.py' '*.css' \
+            ':!*.lock' ':!node_modules' \
+            | head -c 12000 > /tmp/pr.diff
+          echo "Diff size: $(wc -c < /tmp/pr.diff) bytes"
+
+      - name: Run Claude review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python3 << 'PYEOF'
+          import os, json, urllib.request
+
+          diff = open("/tmp/pr.diff").read().strip()
+
+          if not diff:
+              open("/tmp/review.md", "w").write("_No code changes detected in this PR._")
+              exit(0)
+
+          prompt = (
+              "You are a senior engineer reviewing a pull request for a Next.js + Python Flask DNA synthesis platform.\n\n"
+              "Review this diff and provide:\n"
+              "1. **Summary** — what this PR changes (2-3 sentences)\n"
+              "2. **Issues** — bugs, security risks, type errors, or bad patterns (if any)\n"
+              "3. **Suggestions** — concrete improvements (if any)\n"
+              "4. **Verdict** — LGTM / Needs changes\n\n"
+              "Be concise. Skip trivial style comments.\n\n"
+              "Diff:\n```\n" + diff + "\n```"
+          )
+
+          payload = json.dumps({
+              "model": "claude-sonnet-4-6",
+              "max_tokens": 1024,
+              "messages": [{"role": "user", "content": prompt}]
+          }).encode("utf-8")
+
+          req = urllib.request.Request(
+              "https://api.anthropic.com/v1/messages",
+              data=payload,
+              headers={
+                  "x-api-key": os.environ["ANTHROPIC_API_KEY"],
+                  "anthropic-version": "2023-06-01",
+                  "content-type": "application/json",
+              }
+          )
+
+          try:
+              with urllib.request.urlopen(req) as res:
+                  body = json.loads(res.read())
+              review = body["content"][0]["text"]
+          except urllib.error.HTTPError as e:
+              error_body = e.read().decode()
+              print(f"API error {e.code}: {error_body}")
+              review = f"_Claude review failed (HTTP {e.code}). Check Actions logs for details._"
+
+          open("/tmp/review.md", "w").write(review)
+          print("Done.")
+          PYEOF
+
+      - name: Post review comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('/tmp/review.md', 'utf8');
+            const body = `## 🤖 Claude Code Review\n\n${review}\n\n---\n*Powered by claude-sonnet-4-6*`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

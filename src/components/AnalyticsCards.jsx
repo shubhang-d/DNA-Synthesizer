@@ -5,7 +5,6 @@ import {
   Target,
   Search,
   TrendingUp,
-  FlaskConical
 } from "lucide-react";
 
 const analyticsData = [

@@ -1,41 +1,49 @@
-/// <reference types="@react-three/fiber" />
 'use client';
 
-import { useRef, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useRef } from 'react';
+import { Canvas, useFrame, useThree, RootState } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
+
+// Module-level init keeps Math.random() out of the render phase
+type Particle = {
+  t: number; factor: number; speed: number;
+  xFactor: number; yFactor: number; zFactor: number;
+  mx: number; my: number;
+};
+
+const PARTICLE_COUNT = 300;
+
+const INITIAL_PARTICLES: Particle[] = Array.from({ length: PARTICLE_COUNT }, () => ({
+  t: Math.random() * 100,
+  factor: 20 + Math.random() * 100,
+  speed: 0.01 + Math.random() / 200,
+  xFactor: -20 + Math.random() * 40,
+  yFactor: -20 + Math.random() * 40,
+  zFactor: -20 + Math.random() * 40,
+  mx: 0,
+  my: 0,
+}));
+
+// Module-level singletons — safe to read in render AND mutate in useFrame
+const backboneMaterial = new THREE.MeshStandardMaterial({
+  color: '#f0f9ff', emissive: '#f0f9ff',
+  transparent: true, opacity: 0.9, emissiveIntensity: 0.2,
+});
+const rungMaterial = new THREE.MeshStandardMaterial({
+  color: '#a855f7', emissive: '#a855f7',
+  wireframe: true, transparent: true, opacity: 0.3, emissiveIntensity: 0.2,
+});
 
 const DNAShape = ({ isGenerating }: { isGenerating: boolean }) => {
   const groupRef = useRef<THREE.Group>(null);
 
-  const backboneMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#f0f9ff",
-    emissive: "#f0f9ff",
-    wireframe: false,
-    transparent: true,
-    opacity: 0.9,
-    emissiveIntensity: 0.2
-  }), []);
-
-  const rungMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#a855f7",
-    emissive: "#a855f7",
-    wireframe: true,
-    transparent: true,
-    opacity: 0.3,
-    emissiveIntensity: 0.2
-  }), []);
-
-  useFrame((state: any, delta: number) => {
+  useFrame((state: RootState, delta: number) => {
     if (groupRef.current) {
       groupRef.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.05);
-      const speed = isGenerating ? 2.5 : 0.5;
-      groupRef.current.rotation.y += delta * speed;
+      groupRef.current.rotation.y += delta * (isGenerating ? 2.5 : 0.5);
     }
-
-    const pulse = Math.sin(state.clock.elapsedTime * Math.PI);
-    const glowIntensity = 0.2 + (pulse * 0.05);
+    const glowIntensity = 0.2 + Math.sin(state.clock.elapsedTime * Math.PI) * 0.05;
     backboneMaterial.emissiveIntensity = glowIntensity;
     rungMaterial.emissiveIntensity = glowIntensity;
   });
@@ -49,7 +57,6 @@ const DNAShape = ({ isGenerating }: { isGenerating: boolean }) => {
     const t = i / (numBasePairs - 1);
     const y = (t - 0.5) * height;
     const angle = t * Math.PI * 2 * turns;
-
     const x1 = Math.cos(angle) * radius;
     const z1 = Math.sin(angle) * radius;
     const x2 = Math.cos(angle + Math.PI) * radius;
@@ -70,62 +77,48 @@ const DNAShape = ({ isGenerating }: { isGenerating: boolean }) => {
     );
   });
 
-  return (
-    <group ref={groupRef} scale={[0, 0, 0]}>
-      {basePairs}
-    </group>
-  );
+  return <group ref={groupRef} scale={[0, 0, 0]}>{basePairs}</group>;
 };
 
 const ParticleField = () => {
-  const count = 300;
   const mesh = useRef<THREE.InstancedMesh>(null);
   const { mouse } = useThree();
+  const dummy = useRef(new THREE.Object3D());
+  // Deep-copy module-level data so remounts get fresh state
+  const particles = useRef<Particle[]>(INITIAL_PARTICLES.map(p => ({ ...p })));
 
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-
-  const particles = useMemo(() => {
-    const temp = [];
-    for (let i = 0; i < count; i++) {
-      const t = Math.random() * 100;
-      const factor = 20 + Math.random() * 100;
-      const speed = 0.01 + Math.random() / 200;
-      const xFactor = -20 + Math.random() * 40;
-      const yFactor = -20 + Math.random() * 40;
-      const zFactor = -20 + Math.random() * 40;
-      temp.push({ t, factor, speed, xFactor, yFactor, zFactor, mx: 0, my: 0 });
-    }
-    return temp;
-  }, [count]);
-
-  useFrame((state: any) => {
-    if (!mesh.current) return;
-    particles.forEach((particle, i) => {
-      let { t, factor, speed, xFactor, yFactor, zFactor } = particle;
-      t = particle.t += speed / 2;
-      const a = Math.cos(t) + Math.sin(t * 1) / 10;
+  useFrame(() => {
+    const instancedMesh = mesh.current;
+    if (!instancedMesh) return;
+    particles.current.forEach((particle, i) => {
+      const { factor, speed, xFactor, yFactor, zFactor } = particle;
+      particle.t += speed / 2;
+      const { t } = particle;
+      const a = Math.cos(t) + Math.sin(t) / 10;
       const b = Math.sin(t) + Math.cos(t * 2) / 10;
       const s = Math.cos(t);
 
       particle.mx += (mouse.x * 40 - particle.mx) * 0.03;
       particle.my += (mouse.y * 40 - particle.my) * 0.03;
 
-      dummy.position.set(
-        (particle.mx / 10) + a + xFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 1) * factor) / 10,
-        (particle.my / 10) + b + yFactor + Math.sin((t / 10) * factor) + (Math.cos(t * 2) * factor) / 10,
-        (particle.my / 10) + b + zFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10
+      dummy.current.position.set(
+        particle.mx / 10 + a + xFactor + Math.cos((t / 10) * factor) + (Math.sin(t) * factor) / 10,
+        particle.my / 10 + b + yFactor + Math.sin((t / 10) * factor) + (Math.cos(t * 2) * factor) / 10,
+        particle.my / 10 + b + zFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10,
       );
-      dummy.scale.set(s, s, s);
-      dummy.rotation.set(s * 5, s * 5, s * 5);
-      dummy.updateMatrix();
-
-      mesh.current!.setMatrixAt(i, dummy.matrix);
+      dummy.current.scale.set(s, s, s);
+      dummy.current.rotation.set(s * 5, s * 5, s * 5);
+      dummy.current.updateMatrix();
+      instancedMesh.setMatrixAt(i, dummy.current.matrix);
     });
-    mesh.current!.instanceMatrix.needsUpdate = true;
+    instancedMesh.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <instancedMesh ref={mesh} args={[undefined as any, undefined as any, count]}>
+    <instancedMesh
+      ref={mesh}
+      args={[undefined, undefined, PARTICLE_COUNT] as [THREE.BufferGeometry | undefined, THREE.Material | undefined, number]}
+    >
       <sphereGeometry args={[0.08, 8, 8]} />
       <meshBasicMaterial color="#a855f7" transparent opacity={0.2} />
     </instancedMesh>
@@ -138,9 +131,11 @@ const CursorLight = () => {
 
   useFrame(() => {
     if (lightRef.current) {
-      const x = (mouse.x * viewport.width) / 2;
-      const y = (mouse.y * viewport.height) / 2;
-      lightRef.current.position.set(x, y, 5);
+      lightRef.current.position.set(
+        (mouse.x * viewport.width) / 2,
+        (mouse.y * viewport.height) / 2,
+        5,
+      );
     }
   });
 
@@ -150,16 +145,8 @@ const CursorLight = () => {
 export default function SynthesizerDNAViewer({ isGenerating = false }: { isGenerating?: boolean }) {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -10, pointerEvents: 'none' }}>
-      <Canvas
-        shadows
-        camera={{ position: [0, 0, 10], fov: 50 }}
-        dpr={[1, 2]}
-        gl={{
-          antialias: false,
-          powerPreference: 'high-performance',
-          alpha: true
-        }}
-      >
+      <Canvas shadows camera={{ position: [0, 0, 10], fov: 50 }} dpr={[1, 2]}
+        gl={{ antialias: false, powerPreference: 'high-performance', alpha: true }}>
         <ambientLight intensity={1.5} />
         <pointLight position={[10, 10, 10]} intensity={2} />
         <CursorLight />
