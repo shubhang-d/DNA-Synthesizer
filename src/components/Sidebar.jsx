@@ -9,7 +9,6 @@ import {
   Brain,
   Search,
   Library,
-  FlaskConical,
   Upload,
   BarChart3,
   Settings,
@@ -24,7 +23,6 @@ const navigationItems = [
   { name: "Diffusion Model Training", href: "/dashboard/model-training", icon: Brain },
   { name: "Regulatory Motif Analyzer", href: "/dashboard/analyzer", icon: Search },
   { name: "Synthetic DNA Library", href: "/dashboard/library", icon: Library },
-  { name: "Experiment Results", href: "/dashboard/experiments", icon: FlaskConical },
   { name: "Model Upload", href: "/dashboard/upload", icon: Upload },
   { name: "Analytics & Insights", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -37,7 +35,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const researcherLab = session?.user?.email || "Lab 04";
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen ${sidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-4 transition-all duration-300 ease-in-out`}>
+    <aside className={`fixed left-0 top-0 h-screen z-50 ${sidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-4 transition-all duration-300 ease-in-out`}>
       <div className="relative z-10 mb-6 flex items-center justify-between">
         {sidebarOpen && (
           <Link href="/" className="text-lg font-bold text-slate-100 uppercase tracking-wide">

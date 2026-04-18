@@ -1,201 +1,140 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Play } from "lucide-react";
-import { AreaChart, Area, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { useState, useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { FlaskConical, Search } from "lucide-react";
+
+const MOTIFS = [
+  { name: "TATA",   seq: "TATA",   color: "#f59e0b", desc: "TATA box (promoter)" },
+  { name: "CAAT",   seq: "CAAT",   color: "#10b981", desc: "CAAT box (promoter)" },
+  { name: "GCG",    seq: "GCG",    color: "#6366f1", desc: "CpG-like site" },
+  { name: "ATG",    seq: "ATG",    color: "#ec4899", desc: "Start codon" },
+  { name: "AATAAA", seq: "AATAAA", color: "#22d3ee", desc: "Poly-A signal" },
+  { name: "CCAAT",  seq: "CCAAT",  color: "#f97316", desc: "CCAAT box" },
+];
+
+const BASE_COLORS = { A: "#10b981", T: "#ef4444", C: "#22d3ee", G: "#f59e0b" };
+
+function cleanSeq(raw) {
+  return raw.replace(/^>.*$/gm, "").replace(/\s+/g, "").toUpperCase().replace(/[^ATGC]/g, "");
+}
+
+function analyze(seq) {
+  if (!seq.length) return null;
+  const counts = { A: 0, T: 0, G: 0, C: 0 };
+  for (const b of seq) if (b in counts) counts[b]++;
+  const gc = ((counts.G + counts.C) / seq.length) * 100;
+  const cpg = (seq.match(/CG/g) || []).length;
+
+  const motifHits = MOTIFS.map((m) => {
+    let count = 0, idx = 0;
+    while ((idx = seq.indexOf(m.seq, idx)) !== -1) { count++; idx++; }
+    return { ...m, count };
+  }).filter((m) => m.count > 0);
+
+  return { counts, gc, cpg, motifHits, length: seq.length };
+}
 
 export default function DNAExperimentPanel() {
-  const [sequence, setSequence] = useState("");
-  const [generatedSequence, setGeneratedSequence] = useState("");
-  const [score, setScore] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [chartData, setChartData] = useState([]);
+  const [raw, setRaw] = useState("");
+  const seq    = useMemo(() => cleanSeq(raw), [raw]);
+  const result = useMemo(() => analyze(seq), [seq]);
 
-  useEffect(() => {
-    const initData = Array.from({ length: 50 }, (_, i) => ({ index: i, score: Math.random() * 5 }));
-    setChartData(initData);
-  }, []);
-
-  const generate = () => {
-    if (!sequence.trim() && !loading) {
-       setSequence("ATGCGTACGTAGCTAGCTAGCTGATCGATCGTAGCTAGCTAGCTAGCTAG");
-    }
-    setLoading(true);
-    setScore(null);
-    setProgress(0);
-    setGeneratedSequence("");
-
-    const mockResult = "ATGC" + Array.from({length: 46}, () => ["A", "T", "G", "C"][Math.floor(Math.random() * 4)]).join("");
-    const targetScore = (70 + Math.random() * 28).toFixed(1);
-
-    const timer = setInterval(() => {
-      setProgress((old) => {
-        const next = old + Math.random() * 15;
-        if (next >= 100) {
-          clearInterval(timer);
-          finishGeneration(mockResult, targetScore);
-          return 100;
-        }
-        return next;
-      });
-    }, 300);
-  };
-
-  const finishGeneration = (mockResult, targetScore) => {
-    setScore(targetScore);
-    
-    // Generate data matching sequence length
-    const data = Array.from({ length: mockResult.length }, (_, i) => {
-      const isHot = Math.random() > 0.85;
-      let baseScore = Math.random() * 20 + 10;
-      if (isHot) baseScore += Math.random() * 50 + 30; // peak
-      return { index: i, score: baseScore };
-    });
-
-    let currentText = "";
-    let i = 0;
-    const typeTimer = setInterval(() => {
-      currentText += mockResult[i];
-      setGeneratedSequence(currentText);
-      i++;
-      if (i === mockResult.length) {
-        clearInterval(typeTimer);
-        setLoading(false);
-        setChartData(data);
-      }
-    }, 30);
-  };
-
-  const renderAnnotatedSequence = () => {
-    return generatedSequence.split("").map((char, index) => {
-      let colorClass = "text-slate-400";
-      if (char === "A" || char === "T") colorClass = "text-indigo-300";
-      if (char === "G" || char === "C") colorClass = "text-emerald-300";
-
-      const dataPoint = chartData[index];
-      const isHot = dataPoint && dataPoint.score > 60;
-      const highlight = isHot && !loading ? "bg-indigo-500/20 shadow-[0_2px_0_0_#4f46e5] font-bold" : "";
-
-      return (
-        <span key={index} className={`inline-block w-3 text-center ${colorClass} ${highlight} transition-all duration-300`}>
-          {char}
-        </span>
-      );
-    });
-  };
+  const baseChartData = result
+    ? Object.entries(result.counts).map(([b, v]) => ({ base: b, count: v, pct: ((v / result.length) * 100).toFixed(1) }))
+    : [];
 
   return (
-    <section className="py-20 px-4 md:px-8 relative bg-slate-900 border-b border-slate-800">
-      <div className="text-center mb-12 relative z-10">
-        <h2 className="text-3xl font-bold text-white mb-4">
-          In-Silico Evaluation Panel
-        </h2>
-        <p className="text-slate-400 max-w-2xl mx-auto">
-          Input a base sequence or upload your data to generate optimized synthetic regulatory variants via the fine-tuned diffusion model.
-        </p>
-      </div>
-
-      <div className="max-w-4xl mx-auto flex flex-col space-y-6 bg-slate-800/80 p-6 md:p-8 rounded-xl border border-slate-700 shadow-sm relative z-10">
-        <div className="relative group">
-          <label className="text-xs text-slate-400 font-semibold mb-2 block uppercase tracking-wider">Input Sequence (FASTA Format)</label>
-          <textarea
-            className="w-full p-4 bg-slate-900 text-slate-200 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all duration-200 font-mono text-sm leading-relaxed resize-none shadow-inner"
-            rows={3}
-            placeholder="Enter FASTA/GenBank sequence here..."
-            value={sequence}
-            onChange={(e) => setSequence(e.target.value)}
-            disabled={loading}
-          />
+    <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-5">
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-9 h-9 rounded-md bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+          <FlaskConical className="w-4 h-4 text-indigo-300" />
         </div>
-
-        <button
-          onClick={generate}
-          disabled={loading}
-          className={`self-end inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors duration-200 ${loading ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'}`}
-        >
-          {loading ? (
-             <>
-               <Loader2 className="w-4 h-4 animate-spin" />
-               Processing...
-             </>
-          ) : (
-             <>
-               <Play className="w-4 h-4 fill-current" />
-               Run Diffusion Protocol
-             </>
-          )}
-        </button>
-
-        {loading && progress < 100 && (
-          <div className="w-full mt-4">
-            <div className="flex justify-between text-xs text-indigo-400 mb-2 font-mono">
-              <span className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin"/> INITIALIZING...</span>
-              <span>{Math.floor(progress)}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden shrink-0">
-               <div className="h-full bg-indigo-500 transition-all duration-300 relative rounded-full" style={{width: `${progress}%`}}>
-               </div>
-            </div>
-          </div>
-        )}
-
-        {(generatedSequence || score !== null) && (
-          <div className="mt-6 pt-6 border-t border-slate-700">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-               <div>
-                  <label className="text-xs text-slate-400 font-semibold mb-2 flex justify-between uppercase tracking-wider">
-                    <span>Generated Output Sequence</span>
-                    {!loading && <span className="text-indigo-400 lowercase tracking-normal font-mono text-[10px]">Motifs Annotated</span>}
-                  </label>
-                  <div className="p-4 bg-slate-900 rounded-lg border border-slate-700 font-mono text-sm text-slate-300 break-all min-h-[140px] shadow-inner relative leading-loose tracking-widest">
-                     {renderAnnotatedSequence()}
-                     {loading && <span className="inline-block w-2 h-4 ml-1 bg-indigo-400 animate-pulse"></span>}
-                  </div>
-               </div>
-
-               <div>
-                 <p className="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-wider">Predicted Expression Strength</p>
-                 <div className="flex items-end gap-3 mb-3">
-                    <span className="text-4xl font-bold text-white">
-                      {score || "0.0"}
-                    </span>
-                    <span className="text-slate-500 pb-1 font-mono">/ 100</span>
-                 </div>
-                 
-                 <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mb-6">
-                   <div
-                     className="h-full bg-emerald-500 transition-all duration-1000"
-                     style={{ width: `${score || 0}%` }}
-                   ></div>
-                 </div>
-
-                 <p className="text-xs text-slate-400 font-semibold mb-2 uppercase tracking-wider">Attention Score Distribution</p>
-                 <div className="w-full h-24 bg-slate-900 rounded-lg border border-slate-700 relative overflow-hidden pt-2 pl-[-10px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -40, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <YAxis domain={['dataMin', 'dataMax + 20']} hide />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '4px', color: '#c7d2fe', fontSize: '12px' }}
-                          itemStyle={{ color: '#818cf8' }}
-                          labelStyle={{ display: 'none' }}
-                          cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '4 4' }}
-                        />
-                        <Area type="monotone" dataKey="score" stroke="#6366f1" fillOpacity={1} fill="url(#colorScore)" isAnimationActive={!loading} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                 </div>
-               </div>
-            </div>
-          </div>
-        )}
+        <div>
+          <h3 className="text-sm font-semibold text-white">Sequence Analyzer</h3>
+          <p className="text-xs text-slate-500">Paste any DNA sequence or FASTA block for instant local analysis</p>
+        </div>
       </div>
-    </section>
+
+      <textarea
+        rows={4}
+        value={raw}
+        onChange={(e) => setRaw(e.target.value)}
+        placeholder={">My sequence\nATGCGTACGTAGCTAGCTAGCTGATCGATCG..."}
+        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 font-mono text-xs outline-none focus:border-indigo-500 resize-none"
+      />
+
+      {!result && (
+        <div className="flex items-center gap-2 text-slate-500 text-sm py-4 justify-center">
+          <Search className="w-4 h-4" />
+          Paste a sequence above to see results
+        </div>
+      )}
+
+      {result && (
+        <div className="space-y-5">
+          {/* Key metrics row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: "Length",      value: `${result.length} bp` },
+              { label: "GC Content",  value: `${result.gc.toFixed(1)}%` },
+              { label: "CpG Sites",   value: result.cpg },
+              { label: "Motifs Found", value: result.motifHits.length },
+            ].map((s) => (
+              <div key={s.label} className="bg-slate-950 border border-slate-800 rounded-lg px-4 py-3">
+                <p className="text-xs text-slate-500 mb-1">{s.label}</p>
+                <p className="text-xl font-bold text-white">{s.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Base composition chart */}
+          <div>
+            <p className="text-xs text-slate-400 uppercase tracking-widest mb-3">Base Composition</p>
+            <ResponsiveContainer width="100%" height={120}>
+              <BarChart data={baseChartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <XAxis dataKey="base" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                <YAxis hide />
+                <Tooltip
+                  cursor={{ fill: "rgba(99,102,241,0.08)" }}
+                  contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }}
+                  formatter={(v, _, { payload }) => [`${payload.count} (${payload.pct}%)`, payload.base]}
+                />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                  {baseChartData.map((d) => (
+                    <Cell key={d.base} fill={BASE_COLORS[d.base]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Motif hits */}
+          {result.motifHits.length > 0 && (
+            <div>
+              <p className="text-xs text-slate-400 uppercase tracking-widest mb-3">Regulatory Motifs Detected</p>
+              <div className="flex flex-wrap gap-2">
+                {result.motifHits.map((m) => (
+                  <div
+                    key={m.name}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs"
+                    style={{ borderColor: m.color + "40", background: m.color + "10", color: m.color }}
+                  >
+                    <span className="w-2 h-2 rounded-full inline-block" style={{ background: m.color }} />
+                    <span className="font-mono font-semibold">{m.name}</span>
+                    <span className="text-slate-400">×{m.count}</span>
+                    <span className="text-slate-500">— {m.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result.motifHits.length === 0 && (
+            <p className="text-xs text-slate-500 italic">No known regulatory motifs found in this sequence.</p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
