@@ -1,0 +1,74 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+
+jobs:
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          # Limit to 400 lines so we stay within context limits
+          DIFF=$(git diff origin/main...HEAD -- \
+            '*.ts' '*.tsx' '*.jsx' '*.js' '*.py' '*.css' \
+            ':!*.lock' ':!node_modules' \
+            | head -400)
+          # Use a delimiter to safely pass multiline output
+          echo "diff<<DIFF_EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "DIFF_EOF" >> $GITHUB_OUTPUT
+
+      - name: Run Claude review
+        id: claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          DIFF='${{ steps.diff.outputs.diff }}'
+
+          PAYLOAD=$(jq -n \
+            --arg diff "$DIFF" \
+            '{
+              model: "claude-sonnet-4-6",
+              max_tokens: 1024,
+              messages: [{
+                role: "user",
+                content: ("You are a senior engineer reviewing a pull request for a Next.js + Python Flask DNA synthesis platform.\n\nReview this diff and provide:\n1. **Summary** — what this PR changes (2-3 sentences)\n2. **Issues** — bugs, security risks, type errors, or bad patterns (if any)\n3. **Suggestions** — concrete improvements (if any)\n4. **Verdict** — LGTM / Needs changes\n\nBe concise. Skip trivial style comments.\n\nDiff:\n```\n" + $diff + "\n```")
+              }]
+            }')
+
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "$PAYLOAD")
+
+          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // "Claude review unavailable."')
+
+          echo "review<<REVIEW_EOF" >> $GITHUB_OUTPUT
+          echo "$REVIEW" >> $GITHUB_OUTPUT
+          echo "REVIEW_EOF" >> $GITHUB_OUTPUT
+
+      - name: Post review comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const review = `## 🤖 Claude Code Review\n\n${{ steps.claude.outputs.review }}\n\n---\n*Powered by Claude Sonnet — [DNA-Synthesizer CI](../actions)*`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: review,
+            });
