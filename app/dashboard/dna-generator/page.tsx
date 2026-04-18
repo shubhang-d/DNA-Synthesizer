@@ -50,7 +50,7 @@ export default function DNAGeneratorPage() {
     try {
       try {
         await axios.get('http://127.0.0.1:5000/', { timeout: 2000 });
-      } catch (networkErr: any) {
+      } catch (networkErr) {
         console.warn('Health check failed — backend may be down or missing CORS on /', networkErr);
       }
 
@@ -64,11 +64,12 @@ export default function DNAGeneratorPage() {
       } else {
         throw new Error('Invalid response format');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
+      const axiosErr = axios.isAxiosError(err) ? err : null;
       setError(
-        err.response?.data?.error ||
-        err.message ||
+        axiosErr?.response?.data?.error ??
+        (err instanceof Error ? err.message : null) ??
         'Failed to connect to synthesizer backend. Ensure the Python API is running on 127.0.0.1:5000 and CORS is enabled.'
       );
     } finally {

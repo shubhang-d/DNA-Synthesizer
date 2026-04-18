@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Python virtualenvs and their bundled JS files
+    ".venv/**",
+    "venv/**",
+    // Separate frontend sub-project has its own lint setup
+    "frontend/**",
   ]),
 ]);
 

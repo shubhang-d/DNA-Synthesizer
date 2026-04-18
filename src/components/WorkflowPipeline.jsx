@@ -32,7 +32,7 @@ export default function WorkflowPipeline() {
       </div>
 
       <div className="flex items-center justify-center space-x-8 overflow-x-auto">
-        {steps.map((step, idx) => {
+        {steps.map((step) => {
           const Icon = step.icon;
           return (
             <div

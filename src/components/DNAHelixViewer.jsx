@@ -32,6 +32,7 @@ export default function DNAHelixViewer() {
       animationDelay: `${Math.random() * 2}s`,
       animationDuration: `${1 + Math.random() * 2}s`
     }));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setParticles(arr);
   }, []);
 

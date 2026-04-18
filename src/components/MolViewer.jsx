@@ -64,7 +64,7 @@ export default function MolViewer({ pdbId = "1BNA", className = "" }) {
       if (viewerRef.current) {
         try {
             viewerRef.current.clear();
-        } catch (e) {}
+        } catch {}
       }
     };
   }, [pdbId]);

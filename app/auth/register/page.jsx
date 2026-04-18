@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { Brain, Fingerprint } from "lucide-react";
+import { Brain } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -17,7 +17,6 @@ const schema = z.object({
 export default function RegisterPage() {
   const router = useRouter();
   const sess = useSession();
-  const session = sess?.data;
   const status = sess?.status;
   const [loading, setLoading] = useState(false);
 
