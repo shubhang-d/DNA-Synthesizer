@@ -48,13 +48,15 @@ export default function DNAGeneratorPage() {
     setSequences([]);
 
     try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
+
       try {
-        await axios.get('http://127.0.0.1:5000/', { timeout: 2000 });
+        await axios.get(`${apiBase}/`, { timeout: 2000 });
       } catch (networkErr) {
         console.warn('Health check failed — backend may be down or missing CORS on /', networkErr);
       }
 
-      const response = await axios.post('http://127.0.0.1:5000/api/generate', {
+      const response = await axios.post(`${apiBase}/api/generate`, {
         cell_type: cellType,
         count,
       });
