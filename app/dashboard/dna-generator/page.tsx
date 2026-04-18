@@ -62,7 +62,18 @@ export default function DNAGeneratorPage() {
       });
 
       if (response.data?.sequences) {
-        setSequences(response.data.sequences);
+        const generated: string[] = response.data.sequences;
+        setSequences(generated);
+
+        const cellTypeNames: Record<number, string> = { 0: 'K562', 1: 'HepG2', 2: 'GM12878', 3: 'hESCT0' };
+        const existing = JSON.parse(localStorage.getItem('dna_library') ?? '[]');
+        const newEntries = generated.map((seq: string, i: number) => ({
+          id: `SEQ-${Date.now()}-${i}`,
+          sequence: seq,
+          cellType: cellTypeNames[cellType] ?? `Type ${cellType}`,
+          generatedAt: new Date().toISOString(),
+        }));
+        localStorage.setItem('dna_library', JSON.stringify([...newEntries, ...existing]));
       } else {
         throw new Error('Invalid response format');
       }
@@ -81,8 +92,7 @@ export default function DNAGeneratorPage() {
 
   return (
     <main
-      className="min-h-screen bg-black text-white relative overflow-hidden font-sans"
-      style={{ zIndex: 1 }}
+      className="min-h-screen bg-black text-white relative font-sans"
     >
       {/* 3D DNA background */}
       <SynthesizerDNAViewer isGenerating={isGenerating} />

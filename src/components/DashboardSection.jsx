@@ -7,19 +7,20 @@ import {
   Brain,
   CheckCircle2,
   Dna,
-  Download,
   FileUp,
-  FlaskConical,
   Library,
   Play,
   Save,
   Search,
   Settings,
   SlidersHorizontal,
-  Upload
+  Trash2,
+  Upload,
+  Copy,
 } from "lucide-react";
-import AnalyticsCards from "./AnalyticsCards";
 import DNAExperimentPanel from "./DNAExperimentPanel";
+import SyntheticDNAAnalytics from "./SyntheticDNAAnalytics";
+import ExportMenu from "./ExportMenu";
 
 const sections = {
   overview: {
@@ -47,11 +48,6 @@ const sections = {
     description: "Filter saved generated sequences and inspect their latest expression scores.",
     icon: Library,
   },
-  experiments: {
-    title: "Experiment Results",
-    description: "Review completed experiment runs and export summarized outcomes.",
-    icon: FlaskConical,
-  },
   upload: {
     title: "Model Upload",
     description: "Attach a model checkpoint and validate it before deployment.",
@@ -69,17 +65,6 @@ const sections = {
   },
 };
 
-const savedSequences = [
-  { id: "REG-1042", sequence: "ATGCGTACGTAGCTAGCTA", score: 94, status: "Validated" },
-  { id: "ENH-2217", sequence: "CGTATGCCGATATTCGCAA", score: 88, status: "Queued" },
-  { id: "PROM-0631", sequence: "TTGACATGACTAGCGATAC", score: 81, status: "Review" },
-];
-
-const experimentRows = [
-  { run: "EXP-410", model: "DNA v2.0", score: "94.2%", time: "12 min", result: "Passed" },
-  { run: "EXP-409", model: "DNA v1.8", score: "89.7%", time: "18 min", result: "Passed" },
-  { run: "EXP-408", model: "MotifScan Beta", score: "76.4%", time: "9 min", result: "Needs Review" },
-];
 
 function cleanSequence(value) {
   return value.toUpperCase().replace(/[^ATGC]/g, "");
@@ -119,14 +104,66 @@ function QuickCard({ title, value, detail, icon: Icon }) {
   );
 }
 
+const MOTIF_SEQS = ["TATA", "CAAT", "GCG", "ATG", "AATAAA", "CCAAT"];
+
+function countMotifs(seq) {
+  return MOTIF_SEQS.reduce((n, m) => {
+    let idx = 0, c = 0;
+    while ((idx = seq.indexOf(m, idx)) !== -1) { c++; idx++; }
+    return n + c;
+  }, 0);
+}
+
 function OverviewContent() {
+  const library = useState(() => {
+    try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]"); }
+    catch { return []; }
+  })[0];
+
+  const stats = useMemo(() => {
+    const total    = library.length;
+    const types    = new Set(library.map((e) => e.cellType)).size;
+    const motifs   = library.reduce((n, e) => n + countMotifs(e.sequence), 0);
+    const lastBatch = library[0]
+      ? new Date(library[0].generatedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+      : "—";
+    return { total, types, motifs, lastBatch };
+  }, [library]);
+
+  // last 5 sequences for the recent activity feed
+  const recent = library.slice(0, 5);
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <QuickCard title="Active Sequences" value="2,847" detail="+12.5%" icon={Dna} />
-        <QuickCard title="Training Jobs" value="6" detail="2 running" icon={Brain} />
-        <QuickCard title="Validated Motifs" value="1,203" detail="+8.7%" icon={CheckCircle2} />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <QuickCard title="Sequences in Library" value={stats.total || "—"}   detail={stats.total ? "from localStorage" : "none yet"} icon={Dna} />
+        <QuickCard title="Cell Types Explored"  value={stats.types || "—"}   detail="unique"                                          icon={Brain} />
+        <QuickCard title="Regulatory Motifs"    value={stats.motifs || "—"}  detail="across all seqs"                                  icon={CheckCircle2} />
+        <QuickCard title="Last Generation"      value={stats.lastBatch}      detail="most recent batch"                                icon={Activity} />
       </div>
+
+      {recent.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+          <p className="text-xs text-slate-500 uppercase tracking-widest mb-4">Recent sequences</p>
+          <div className="space-y-2">
+            {recent.map((e) => (
+              <div key={e.id} className="flex items-center gap-4 py-2 border-b border-slate-800 last:border-0">
+                <span className="text-xs font-mono text-indigo-300 w-32 shrink-0">{e.id.slice(-10)}</span>
+                <span className="text-xs text-slate-500 w-16 shrink-0">{e.cellType}</span>
+                <span className="text-xs font-mono text-slate-400 truncate flex-1">{e.sequence.slice(0, 60)}…</span>
+                <span className="text-xs text-slate-600 shrink-0">{new Date(e.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {library.length === 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center text-slate-500 text-sm">
+          No sequences yet — go to <span className="text-indigo-400">DNA Sequence Generator</span> to generate your first batch.
+        </div>
+      )}
+
       <DNAExperimentPanel />
     </div>
   );
@@ -135,7 +172,7 @@ function OverviewContent() {
 function TrainingContent() {
   const [epochs, setEpochs] = useState(40);
   const [rate, setRate] = useState("0.0003");
-  const [progress, setProgress] = useState(62);
+  const [progress, setProgress] = useState(0);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -195,58 +232,94 @@ function AnalyzerContent() {
 
 function LibraryContent() {
   const [query, setQuery] = useState("");
-  const rows = savedSequences.filter((item) => `${item.id} ${item.sequence} ${item.status}`.toLowerCase().includes(query.toLowerCase()));
+  const [entries, setEntries] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]"); }
+    catch { return []; }
+  });
+  const [copiedId, setCopiedId] = useState(null);
 
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter library..." className="w-full mb-5 bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500" />
-      <div className="space-y-3">
-        {rows.map((item) => (
-          <div key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 rounded-lg bg-slate-950 border border-slate-800">
-            <span className="text-white font-semibold">{item.id}</span>
-            <span className="text-slate-400 font-mono text-sm md:col-span-2">{item.sequence}</span>
-            <span className="text-emerald-300">{item.score}% - {item.status}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+  const filtered = entries.filter((item) =>
+    `${item.id} ${item.sequence} ${item.cellType}`.toLowerCase().includes(query.toLowerCase())
   );
-}
 
-function ExperimentsContent() {
-  const [exported, setExported] = useState(false);
+  const handleCopy = (seq, id) => {
+    navigator.clipboard.writeText(seq);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleDelete = (id) => {
+    const updated = entries.filter((e) => e.id !== id);
+    setEntries(updated);
+    localStorage.setItem("dna_library", JSON.stringify(updated));
+  };
+
+  const handleClearAll = () => {
+    setEntries([]);
+    localStorage.removeItem("dna_library");
+  };
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-      <button onClick={() => setExported(true)} className="mb-5 inline-flex items-center gap-2 border border-slate-700 hover:bg-slate-800 text-slate-200 rounded-lg px-4 py-2">
-        <Download className="w-4 h-4" />
-        {exported ? "Results Exported" : "Export Results"}
-      </button>
-      {exported && <span className="ml-3 text-sm text-emerald-300">CSV package prepared for the current run set.</span>}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="text-slate-400 border-b border-slate-800">
-            <tr>
-              <th className="py-3">Run</th>
-              <th>Model</th>
-              <th>Score</th>
-              <th>Time</th>
-              <th>Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            {experimentRows.map((row) => (
-              <tr key={row.run} className="border-b border-slate-800/70">
-                <td className="py-4 text-white font-semibold">{row.run}</td>
-                <td className="text-slate-300">{row.model}</td>
-                <td className="text-emerald-300">{row.score}</td>
-                <td className="text-slate-400">{row.time}</td>
-                <td className="text-slate-300">{row.result}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex gap-3 mb-5">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filter by sequence, cell type, or ID..."
+          className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500"
+        />
+        {entries.length > 0 && (
+          <button
+            onClick={handleClearAll}
+            className="inline-flex items-center gap-2 border border-red-800 hover:bg-red-900/30 text-red-400 rounded-lg px-4 py-2 text-sm"
+          >
+            <Trash2 className="w-4 h-4" /> Clear All
+          </button>
+        )}
+        <ExportMenu entries={filtered} label="Export" />
       </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+          <Library className="w-10 h-10 mb-3 opacity-30" />
+          <p className="text-sm">
+            {entries.length === 0
+              ? "No sequences yet — generate some from the DNA Sequence Generator."
+              : "No matches for your filter."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((item) => (
+            <div
+              key={item.id}
+              className="p-4 rounded-lg bg-slate-950 border border-slate-800 flex flex-col md:flex-row md:items-center gap-3"
+            >
+              <div className="flex-shrink-0 space-y-1 min-w-[140px]">
+                <p className="text-white font-semibold text-sm font-mono">{item.id}</p>
+                <p className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded w-fit">{item.cellType}</p>
+                <p className="text-xs text-slate-500">{new Date(item.generatedAt).toLocaleString()}</p>
+              </div>
+              <p className="flex-1 text-slate-300 font-mono text-xs break-all leading-6">{item.sequence}</p>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => handleCopy(item.sequence, item.id)}
+                  className="inline-flex items-center gap-1 text-xs border border-slate-700 hover:bg-slate-800 text-slate-300 rounded px-3 py-1.5"
+                >
+                  <Copy className="w-3 h-3" />
+                  {copiedId === item.id ? "Copied" : "Copy"}
+                </button>
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="inline-flex items-center gap-1 text-xs border border-red-900 hover:bg-red-900/30 text-red-400 rounded px-3 py-1.5"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -302,9 +375,8 @@ function SectionContent({ slug }) {
   if (slug === "model-training") return <TrainingContent />;
   if (slug === "analyzer") return <AnalyzerContent />;
   if (slug === "library") return <LibraryContent />;
-  if (slug === "experiments") return <ExperimentsContent />;
   if (slug === "upload") return <UploadContent />;
-  if (slug === "analytics") return <AnalyticsCards />;
+  if (slug === "analytics") return <SyntheticDNAAnalytics />;
   if (slug === "settings") return <SettingsContent />;
   return <OverviewContent />;
 }
