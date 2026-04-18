@@ -33,34 +33,31 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          python3 - <<'PYEOF'
+          python3 << 'PYEOF'
           import os, json, urllib.request
 
           diff = open("/tmp/pr.diff").read().strip()
+
           if not diff:
               open("/tmp/review.md", "w").write("_No code changes detected in this PR._")
               exit(0)
 
-          prompt = f"""You are a senior engineer reviewing a pull request for a Next.js + Python Flask DNA synthesis platform.
-
-          Review this diff and provide:
-          1. **Summary** — what this PR changes (2-3 sentences)
-          2. **Issues** — bugs, security risks, type errors, or bad patterns (if any)
-          3. **Suggestions** — concrete improvements (if any)
-          4. **Verdict** — LGTM / Needs changes
-
-          Be concise. Skip trivial style comments.
-
-          Diff:
-          ```
-          {diff}
-          ```"""
+          prompt = (
+              "You are a senior engineer reviewing a pull request for a Next.js + Python Flask DNA synthesis platform.\n\n"
+              "Review this diff and provide:\n"
+              "1. **Summary** — what this PR changes (2-3 sentences)\n"
+              "2. **Issues** — bugs, security risks, type errors, or bad patterns (if any)\n"
+              "3. **Suggestions** — concrete improvements (if any)\n"
+              "4. **Verdict** — LGTM / Needs changes\n\n"
+              "Be concise. Skip trivial style comments.\n\n"
+              "Diff:\n```\n" + diff + "\n```"
+          )
 
           payload = json.dumps({
               "model": "claude-sonnet-4-6",
               "max_tokens": 1024,
               "messages": [{"role": "user", "content": prompt}]
-          }).encode()
+          }).encode("utf-8")
 
           req = urllib.request.Request(
               "https://api.anthropic.com/v1/messages",
@@ -72,12 +69,17 @@ jobs:
               }
           )
 
-          with urllib.request.urlopen(req) as res:
-              body = json.loads(res.read())
+          try:
+              with urllib.request.urlopen(req) as res:
+                  body = json.loads(res.read())
+              review = body["content"][0]["text"]
+          except urllib.error.HTTPError as e:
+              error_body = e.read().decode()
+              print(f"API error {e.code}: {error_body}")
+              review = f"_Claude review failed (HTTP {e.code}). Check Actions logs for details._"
 
-          review = body["content"][0]["text"]
           open("/tmp/review.md", "w").write(review)
-          print("Claude review written successfully.")
+          print("Done.")
           PYEOF
 
       - name: Post review comment
