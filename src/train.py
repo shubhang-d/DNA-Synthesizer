@@ -58,11 +58,13 @@ def get_real_dataloader(filepath, batch_size, seq_len=200):
                 else:
                     continue
                     
-                if ct not in cell_type_map: continue
-                
+                if ct not in cell_type_map:
+                    continue
+
                 # Convert string to indices
                 seq_indices = [base_map[b] for b in seq if b in base_map]
-                if len(seq_indices) != seq_len: continue
+                if len(seq_indices) != seq_len:
+                    continue
                 
                 sequences.append(seq_indices)
                 classes.append(cell_type_map[ct])
