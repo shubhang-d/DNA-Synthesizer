@@ -29,9 +29,6 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit --skipLibCheck
 
-      - name: Generate Prisma client
-        run: npx prisma generate
-
       - name: Build
         run: npm run build
         env:
