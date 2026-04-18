@@ -18,57 +18,78 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch base branch
+        run: git fetch origin main --depth=50
+
       - name: Get PR diff
-        id: diff
         run: |
-          # Limit to 400 lines so we stay within context limits
-          DIFF=$(git diff origin/main...HEAD -- \
+          git diff origin/main...HEAD -- \
             '*.ts' '*.tsx' '*.jsx' '*.js' '*.py' '*.css' \
             ':!*.lock' ':!node_modules' \
-            | head -400)
-          # Use a delimiter to safely pass multiline output
-          echo "diff<<DIFF_EOF" >> $GITHUB_OUTPUT
-          echo "$DIFF" >> $GITHUB_OUTPUT
-          echo "DIFF_EOF" >> $GITHUB_OUTPUT
+            | head -c 12000 > /tmp/pr.diff
+          echo "Diff size: $(wc -c < /tmp/pr.diff) bytes"
 
       - name: Run Claude review
-        id: claude
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          DIFF='${{ steps.diff.outputs.diff }}'
+          python3 - <<'PYEOF'
+          import os, json, urllib.request
 
-          PAYLOAD=$(jq -n \
-            --arg diff "$DIFF" \
-            '{
-              model: "claude-sonnet-4-6",
-              max_tokens: 1024,
-              messages: [{
-                role: "user",
-                content: ("You are a senior engineer reviewing a pull request for a Next.js + Python Flask DNA synthesis platform.\n\nReview this diff and provide:\n1. **Summary** — what this PR changes (2-3 sentences)\n2. **Issues** — bugs, security risks, type errors, or bad patterns (if any)\n3. **Suggestions** — concrete improvements (if any)\n4. **Verdict** — LGTM / Needs changes\n\nBe concise. Skip trivial style comments.\n\nDiff:\n```\n" + $diff + "\n```")
-              }]
-            }')
+          diff = open("/tmp/pr.diff").read().strip()
+          if not diff:
+              open("/tmp/review.md", "w").write("_No code changes detected in this PR._")
+              exit(0)
 
-          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
-            -H "x-api-key: $ANTHROPIC_API_KEY" \
-            -H "anthropic-version: 2023-06-01" \
-            -H "content-type: application/json" \
-            -d "$PAYLOAD")
+          prompt = f"""You are a senior engineer reviewing a pull request for a Next.js + Python Flask DNA synthesis platform.
 
-          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // "Claude review unavailable."')
+          Review this diff and provide:
+          1. **Summary** — what this PR changes (2-3 sentences)
+          2. **Issues** — bugs, security risks, type errors, or bad patterns (if any)
+          3. **Suggestions** — concrete improvements (if any)
+          4. **Verdict** — LGTM / Needs changes
 
-          echo "review<<REVIEW_EOF" >> $GITHUB_OUTPUT
-          echo "$REVIEW" >> $GITHUB_OUTPUT
-          echo "REVIEW_EOF" >> $GITHUB_OUTPUT
+          Be concise. Skip trivial style comments.
+
+          Diff:
+          ```
+          {diff}
+          ```"""
+
+          payload = json.dumps({
+              "model": "claude-sonnet-4-6",
+              "max_tokens": 1024,
+              "messages": [{"role": "user", "content": prompt}]
+          }).encode()
+
+          req = urllib.request.Request(
+              "https://api.anthropic.com/v1/messages",
+              data=payload,
+              headers={
+                  "x-api-key": os.environ["ANTHROPIC_API_KEY"],
+                  "anthropic-version": "2023-06-01",
+                  "content-type": "application/json",
+              }
+          )
+
+          with urllib.request.urlopen(req) as res:
+              body = json.loads(res.read())
+
+          review = body["content"][0]["text"]
+          open("/tmp/review.md", "w").write(review)
+          print("Claude review written successfully.")
+          PYEOF
 
       - name: Post review comment
         uses: actions/github-script@v7
         with:
           script: |
-            const review = `## 🤖 Claude Code Review\n\n${{ steps.claude.outputs.review }}\n\n---\n*Powered by Claude Sonnet — [DNA-Synthesizer CI](../actions)*`;
+            const fs = require('fs');
+            const review = fs.readFileSync('/tmp/review.md', 'utf8');
+            const body = `## 🤖 Claude Code Review\n\n${review}\n\n---\n*Powered by claude-sonnet-4-6*`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: review,
+              body,
             });

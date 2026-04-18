@@ -8,7 +8,6 @@ on:
 
 jobs:
   assist:
-    # Only run when someone writes @claude in a comment
     if: contains(github.event.comment.body, '@claude')
     name: Respond to @claude mention
     runs-on: ubuntu-latest
@@ -22,71 +21,82 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get context
-        id: ctx
-        run: |
-          # Strip the @claude mention to get just the question/instruction
-          PROMPT=$(echo '${{ github.event.comment.body }}' | sed 's/@claude//g' | xargs)
-          echo "prompt=$PROMPT" >> $GITHUB_OUTPUT
+      - name: Fetch base branch
+        run: git fetch origin main --depth=50 2>/dev/null || true
 
-          # If this is a PR comment, also grab the diff for context
-          if [ "${{ github.event.issue.pull_request }}" != "" ] || \
-             [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
-            DIFF=$(git diff origin/main...HEAD -- \
+      - name: Prepare context
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          IS_PR: ${{ github.event.issue.pull_request != null || github.event_name == 'pull_request_review_comment' }}
+        run: |
+          # Strip @claude from the comment to get the question
+          echo "$COMMENT_BODY" | sed 's/@claude//g' | xargs > /tmp/prompt.txt
+
+          # Attach diff if this is a PR comment
+          if [ "$IS_PR" = "true" ]; then
+            git diff origin/main...HEAD -- \
               '*.ts' '*.tsx' '*.jsx' '*.js' '*.py' \
               ':!*.lock' ':!node_modules' \
-              | head -200)
-            echo "diff<<DIFF_EOF" >> $GITHUB_OUTPUT
-            echo "$DIFF" >> $GITHUB_OUTPUT
-            echo "DIFF_EOF" >> $GITHUB_OUTPUT
+              | head -c 6000 > /tmp/pr.diff
+          else
+            touch /tmp/pr.diff
           fi
 
       - name: Ask Claude
-        id: claude
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          SYSTEM="You are Claude, an AI assistant embedded in the GitHub Actions CI for a Next.js + Python Flask DNA synthesis platform. Answer questions, review code, suggest fixes, or explain errors concisely. When showing code, use markdown fences."
+          python3 - <<'PYEOF'
+          import os, json, urllib.request
 
-          DIFF='${{ steps.ctx.outputs.diff }}'
-          PROMPT='${{ steps.ctx.outputs.prompt }}'
+          prompt = open("/tmp/prompt.txt").read().strip()
+          diff = open("/tmp/pr.diff").read().strip()
 
-          if [ -n "$DIFF" ]; then
-            USER_MSG="$PROMPT\n\nCurrent PR diff for context:\n\`\`\`\n$DIFF\n\`\`\`"
-          else
-            USER_MSG="$PROMPT"
-          fi
+          user_msg = prompt
+          if diff:
+              user_msg += f"\n\nCurrent PR diff for context:\n```\n{diff}\n```"
 
-          PAYLOAD=$(jq -n \
-            --arg system "$SYSTEM" \
-            --arg msg "$USER_MSG" \
-            '{
-              model: "claude-sonnet-4-6",
-              max_tokens: 1024,
-              system: $system,
-              messages: [{ role: "user", content: $msg }]
-            }')
+          payload = json.dumps({
+              "model": "claude-sonnet-4-6",
+              "max_tokens": 1024,
+              "system": (
+                  "You are Claude, an AI assistant embedded in GitHub Actions CI "
+                  "for a Next.js + Python Flask DNA synthesis platform. "
+                  "Answer questions, review code, suggest fixes, or explain errors concisely. "
+                  "Use markdown for code blocks."
+              ),
+              "messages": [{"role": "user", "content": user_msg}]
+          }).encode()
 
-          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
-            -H "x-api-key: $ANTHROPIC_API_KEY" \
-            -H "anthropic-version: 2023-06-01" \
-            -H "content-type: application/json" \
-            -d "$PAYLOAD")
+          req = urllib.request.Request(
+              "https://api.anthropic.com/v1/messages",
+              data=payload,
+              headers={
+                  "x-api-key": os.environ["ANTHROPIC_API_KEY"],
+                  "anthropic-version": "2023-06-01",
+                  "content-type": "application/json",
+              }
+          )
 
-          ANSWER=$(echo "$RESPONSE" | jq -r '.content[0].text // "Sorry, I could not generate a response."')
+          with urllib.request.urlopen(req) as res:
+              body = json.loads(res.read())
 
-          echo "answer<<ANSWER_EOF" >> $GITHUB_OUTPUT
-          echo "$ANSWER" >> $GITHUB_OUTPUT
-          echo "ANSWER_EOF" >> $GITHUB_OUTPUT
+          answer = body["content"][0]["text"]
+          open("/tmp/answer.md", "w").write(answer)
+          print("Claude answer written successfully.")
+          PYEOF
 
       - name: Post Claude reply
         uses: actions/github-script@v7
         with:
           script: |
-            const answer = `**@${{ github.event.comment.user.login }}** — 🤖 Claude says:\n\n${{ steps.claude.outputs.answer }}`;
+            const fs = require('fs');
+            const answer = fs.readFileSync('/tmp/answer.md', 'utf8');
+            const actor = context.payload.comment.user.login;
+            const body = `**@${actor}** — 🤖 Claude says:\n\n${answer}`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: answer,
+              body,
             });
