@@ -1,160 +1,173 @@
- "use client";
+"use client";
 
-import { useState } from 'react';
-import { Search, Bell, User, Settings, CreditCard, FileText, LogOut, Brain } from 'lucide-react';
-import { useSession, signOut } from 'next-auth/react';
-import Link from 'next/link';
-import ProfileModal from './ProfileModal';
+import { useState, useMemo } from "react";
+import { Search, Bell, User, Settings, LogOut, Brain, X } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
+import ProfileModal from "./ProfileModal";
+
+function useNotifications() {
+  return useMemo(() => {
+    try {
+      const library = JSON.parse(localStorage.getItem("dna_library") ?? "[]");
+      const batches = {};
+      for (const e of library) {
+        const key = (e.generatedAt ?? "").slice(0, 19);
+        if (!batches[key]) batches[key] = { key, count: 0, cellType: e.cellType, ts: e.generatedAt };
+        batches[key].count++;
+      }
+      return Object.values(batches)
+        .sort((a, b) => b.key.localeCompare(a.key))
+        .slice(0, 5)
+        .map((b) => ({
+          id: b.key,
+          message: `${b.count} ${b.cellType} sequence${b.count > 1 ? "s" : ""} generated`,
+          time: new Date(b.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          type: "success",
+        }));
+    } catch {
+      return [];
+    }
+  }, []);
+}
 
 export default function DashboardHeader() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const { data: session } = useSession();
+  const [searchQuery, setSearchQuery]       = useState("");
+  const { data: session }                   = useSession();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [setupOpen, setSetupOpen] = useState(false);
+  const [profileOpen, setProfileOpen]       = useState(false);
+  const [setupOpen, setSetupOpen]           = useState(false);
 
-  const notifications = [
-    { id: 1, message: 'New DNA sequence generated', time: '2 min ago', type: 'success' },
-    { id: 2, message: 'Model training completed', time: '1 hr ago', type: 'info' },
-  ];
+  const notifications = useNotifications();
 
   return (
-    <header className="flex items-center justify-between p-6 bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
-      <div className="flex items-center w-80 relative">
-        <Search className="w-4 h-4 text-slate-500 absolute left-4" />
+    <header className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+      <div className="flex items-center w-72 relative">
+        <Search className="w-4 h-4 text-slate-500 absolute left-3" />
         <input
           type="text"
-          placeholder="Search DNA sequences, experiments..."
+          placeholder="Search sequences…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+          className="w-full pl-9 pr-4 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
         />
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-3">
         {session && (
           <>
+            {/* Bell */}
             <div className="relative">
               <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                onClick={() => { setNotificationsOpen((o) => !o); setProfileOpen(false); }}
                 className="p-2 rounded-md hover:bg-slate-800 transition-colors relative"
               >
                 <Bell className="w-5 h-5 text-slate-400 hover:text-slate-200" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border border-slate-900"></span>
+                {notifications.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border border-slate-900" />
+                )}
               </button>
+
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-lg shadow-xl shadow-black/20 py-2 z-50 animate-in fade-in zoom-in-95 origin-top-right">
-                  <h3 className="font-semibold text-sm text-slate-200 px-4 py-2 border-b border-slate-700 mb-1 flex items-center gap-2">
-                    Notifications
-                  </h3>
-                  {notifications.map((notif) => (
-                    <div key={notif.id} className="flex gap-3 px-4 py-2.5 hover:bg-slate-700/50 transition-colors cursor-pointer">
-                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${notif.type === 'success' ? 'bg-emerald-500' : 'bg-indigo-500'}`} />
-                      <div>
-                        <p className="text-sm font-medium text-slate-200">{notif.message}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{notif.time}</p>
+                <div className="absolute right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+                    <h3 className="text-sm font-semibold text-slate-200">Notifications</h3>
+                    <button onClick={() => setNotificationsOpen(false)}>
+                      <X className="w-4 h-4 text-slate-500 hover:text-slate-300" />
+                    </button>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <p className="text-xs text-slate-500 text-center py-6">No activity yet — generate some sequences.</p>
+                  ) : (
+                    notifications.map((n) => (
+                      <div key={n.id} className="flex gap-3 px-4 py-3 hover:bg-slate-700/50 transition-colors">
+                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-emerald-500" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-200">{n.message}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{n.time}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>
 
-            <div className="w-px h-6 bg-slate-800"></div>
+            <div className="w-px h-5 bg-slate-700" />
           </>
         )}
 
-        <div className="relative group">
-          {!session ? (
-            <Link href="/auth/login" className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm transition-colors duration-200 text-sm">
-              Sign In
-            </Link>
-          ) : (
-            <>
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-6 p-2 rounded-2xl bg-slate-800/50 border border-slate-700/60 hover:border-slate-600 hover:bg-slate-800 hover:shadow-sm transition-all duration-200 focus:outline-none"
-              >
-                <div className="text-left flex-1 pl-2 hidden md:block">
-                   <div className="text-sm font-medium text-slate-100 tracking-tight leading-tight">
-                        {session?.user?.name || "Eugene An"}
-                   </div>
-                   <div className="text-xs text-slate-400 tracking-tight leading-tight mt-0.5">
-                      {session?.user?.email || "eugene@kokonutui.com"}
-                   </div>
-                </div>
-                <div className="relative">
-                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-400 p-[2px]">
-                      <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-indigo-400 overflow-hidden">
-                         <User className="w-4 h-4" />
-                      </div>
-                   </div>
-                </div>
-              </button>
-              
-              <div className={`absolute -right-3 top-1/2 -translate-y-1/2 transition-all duration-200 pointer-events-none hidden md:block ${profileOpen ? "opacity-100" : "opacity-60 group-hover:opacity-100"}`}>
-                 <svg width="12" height="24" viewBox="0 0 12 24" fill="none" className={`transition-all duration-200 ${profileOpen ? "text-indigo-400 scale-110" : "text-slate-500 group-hover:text-slate-300"}`}>
-                    <path d="M2 4C6 8 6 16 2 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                 </svg>
+        {/* Profile / Sign in */}
+        {!session ? (
+          <Link
+            href="/auth/login"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+          >
+            Sign In
+          </Link>
+        ) : (
+          <div className="relative">
+            <button
+              onClick={() => { setProfileOpen((o) => !o); setNotificationsOpen(false); }}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-800/50 border border-slate-700/60 hover:border-slate-600 hover:bg-slate-800 transition-all"
+            >
+              <div className="text-left hidden md:block">
+                <p className="text-sm font-medium text-slate-100 leading-tight">{session.user?.name ?? "Researcher"}</p>
+                <p className="text-xs text-slate-400 leading-tight mt-0.5">{session.user?.email}</p>
               </div>
-
-              {profileOpen && (
-                <div className="absolute right-0 mt-3 w-64 p-2 bg-slate-800/95 backdrop-blur-sm border border-slate-700/60 rounded-2xl shadow-xl shadow-black/40 origin-top-right animate-in fade-in zoom-in-95 z-50">
-                   <div className="space-y-1">
-                       <button 
-                         onClick={() => { setSetupOpen(true); setProfileOpen(false); }}
-                         className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50"
-                       >
-                           <User className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
-                           <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Profile Settings</span>
-                       </button>
-                       <Link href="/dashboard/model-training" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
-                           <Brain className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
-                           <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Model</span>
-                           <span className="ml-auto text-xs font-medium rounded-md py-1 px-2 text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 tracking-tight">
-                               DNA v2.0
-                           </span>
-                       </Link>
-                       <Link href="/dashboard/settings" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
-                           <CreditCard className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
-                           <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Subscription</span>
-                           <span className="ml-auto text-xs font-medium rounded-md py-1 px-2 text-purple-400 bg-purple-500/10 border border-purple-500/20 tracking-tight">
-                               PRO
-                           </span>
-                       </Link>
-                       <Link href="/dashboard/settings" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
-                           <Settings className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
-                           <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Settings</span>
-                       </Link>
-                       <Link href="/dashboard/experiments" className="w-full flex items-center p-3 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group border border-transparent hover:border-slate-600/50">
-                           <FileText className="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200 transition-colors" />
-                           <span className="text-sm font-medium text-slate-300 group-hover:text-slate-100 tracking-tight leading-tight">Experiment Reports</span>
-                       </Link>
-                   </div>
-                   
-                   <div className="my-3 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
-
-                   <button 
-                      onClick={() => signOut()}
-                      className="w-full flex items-center gap-3 p-3 bg-red-500/10 rounded-xl hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all border border-transparent hover:border-red-500/30 group"
-                   >
-                      <LogOut className="w-4 h-4 group-hover:text-red-400" />
-                      <span className="text-sm font-medium group-hover:text-red-400">Sign Out</span>
-                   </button>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-400 p-[2px] shrink-0">
+                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
+                  <User className="w-4 h-4 text-indigo-400" />
                 </div>
-              )}
-            </>
-          )}
-        </div>
+              </div>
+            </button>
+
+            {profileOpen && (
+              <div className="absolute right-0 mt-2 w-60 p-2 bg-slate-800/95 backdrop-blur-sm border border-slate-700/60 rounded-2xl shadow-xl z-50">
+                <div className="px-3 py-2 mb-1">
+                  <p className="text-sm font-semibold text-white truncate">{session.user?.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{session.user?.email}</p>
+                </div>
+                <div className="h-px bg-slate-700 mb-1" />
+                <button
+                  onClick={() => { setSetupOpen(true); setProfileOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-700/60 rounded-xl text-sm text-slate-300 hover:text-white transition-colors"
+                >
+                  <User className="w-4 h-4" /> Profile Settings
+                </button>
+                <Link
+                  href="/dashboard/model-training"
+                  onClick={() => setProfileOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-700/60 rounded-xl text-sm text-slate-300 hover:text-white transition-colors"
+                >
+                  <Brain className="w-4 h-4" /> Model
+                  <span className="ml-auto text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">v2.0</span>
+                </Link>
+                <Link
+                  href="/dashboard/settings"
+                  onClick={() => setProfileOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-700/60 rounded-xl text-sm text-slate-300 hover:text-white transition-colors"
+                >
+                  <Settings className="w-4 h-4" /> Settings
+                </Link>
+                <div className="h-px bg-slate-700 my-1" />
+                <button
+                  onClick={() => signOut({ callbackUrl: "/auth/login" })}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" /> Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <ProfileModal 
-        isOpen={setupOpen} 
-        onClose={() => setSetupOpen(false)} 
-        initialData={session?.user} 
+      <ProfileModal
+        isOpen={setupOpen}
+        onClose={() => setSetupOpen(false)}
+        initialData={session?.user}
       />
-
     </header>
   );
 }
-
