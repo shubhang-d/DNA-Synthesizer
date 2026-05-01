@@ -68,7 +68,7 @@ export default function LoginPage() {
               </p>
             </div>
             <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 w-full">
-              <p className="text-xs text-amber-300 font-medium mb-1">Don't have an account?</p>
+              <p className="text-xs text-amber-300 font-medium mb-1">Don&apos;t have an account?</p>
               <p className="text-xs text-slate-400 mb-3">
                 You must register first before you can sign in. New accounts are approved instantly.
               </p>
