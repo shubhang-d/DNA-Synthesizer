@@ -6,10 +6,10 @@ import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Dna,
-  Brain,
+  GitCompare,
+  FlaskConical,
   Search,
   Library,
-  Upload,
   BarChart3,
   Settings,
   User,
@@ -20,10 +20,10 @@ import {
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "DNA Sequence Generator", href: "/dashboard/dna-generator", icon: Dna },
-  { name: "Diffusion Model Training", href: "/dashboard/model-training", icon: Brain },
+  { name: "Synthetic vs Real", href: "/dashboard/synthetic-vs-real", icon: GitCompare },
+  { name: "Mutation Playground", href: "/dashboard/mutation-playground", icon: FlaskConical },
   { name: "Regulatory Motif Analyzer", href: "/dashboard/analyzer", icon: Search },
   { name: "Synthetic DNA Library", href: "/dashboard/library", icon: Library },
-  { name: "Model Upload", href: "/dashboard/upload", icon: Upload },
   { name: "Analytics & Insights", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

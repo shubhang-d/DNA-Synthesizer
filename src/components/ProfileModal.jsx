@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronRight, User2, Mail, Phone, X } from "lucide-react";
+import { Check, ChevronRight, User2, Mail, Phone, X, CheckCircle2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 import { cn } from "../lib/utils";
@@ -118,10 +118,12 @@ const thumbnailVariants = {
 };
 
 export default function ProfileModal({ isOpen, onClose, onComplete, initialData }) {
-  const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
-  const [username, setUsername] = useState(initialData?.name || "");
-  const [email, setEmail] = useState(initialData?.email || "");
-  const [phone, setPhone] = useState("");
+  const saved = (() => { try { return JSON.parse(localStorage.getItem("user_profile") ?? "{}"); } catch { return {}; } })();
+  const [selectedAvatar, setSelectedAvatar] = useState(avatars.find((a) => a.id === saved.avatarId) ?? avatars[0]);
+  const [username, setUsername] = useState(saved.username || initialData?.name || "");
+  const [email, setEmail] = useState(saved.email || initialData?.email || "");
+  const [phone, setPhone] = useState(saved.phone || "");
+  const [saved_, setSaved_] = useState(false);
 
   const [isFocused, setIsFocused] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -135,15 +137,11 @@ export default function ProfileModal({ isOpen, onClose, onComplete, initialData 
 
   const handleSubmit = () => {
     if (username.trim() && email.trim()) {
-      if (onComplete) {
-        onComplete({
-          username: username.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          avatarId: selectedAvatar.id,
-        });
-      }
-      onClose();
+      const profile = { username: username.trim(), email: email.trim(), phone: phone.trim(), avatarId: selectedAvatar.id };
+      localStorage.setItem("user_profile", JSON.stringify(profile));
+      if (onComplete) onComplete(profile);
+      setSaved_(true);
+      setTimeout(() => { setSaved_(false); onClose(); }, 1200);
     }
   };
 
@@ -338,20 +336,20 @@ export default function ProfileModal({ isOpen, onClose, onComplete, initialData 
 
               <div className="pt-6">
                  <button
-                   disabled={!isValid}
+                   disabled={!isValid || saved_}
                    onClick={handleSubmit}
-                   className="group flex h-14 w-full items-center justify-center rounded-xl bg-indigo-600 font-bold text-lg text-white transition-all hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                   className={cn(
+                     "group flex h-14 w-full items-center justify-center rounded-xl font-bold text-lg text-white transition-all disabled:cursor-not-allowed",
+                     saved_ ? "bg-emerald-600" : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20 disabled:opacity-50"
+                   )}
                    type="button"
                  >
-                   Save Profile Settings
-                   <ChevronRight
-                     aria-hidden="true"
-                     className="ml-2 h-5 w-5 transition-transform duration-200 ease-out group-hover:translate-x-1"
-                   />
+                   {saved_ ? (
+                     <><CheckCircle2 className="mr-2 h-5 w-5" /> Saved!</>
+                   ) : (
+                     <>Save Profile <ChevronRight aria-hidden="true" className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" /></>
+                   )}
                  </button>
-                 <div className="mt-4 text-center">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">End-To-End Encrypted Verification</p>
-                 </div>
               </div>
 
             </div>
