@@ -5,11 +5,12 @@ import { Search, Bell, User, Settings, LogOut, Brain, X } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import ProfileModal from "./ProfileModal";
+import { getJSON } from "../lib/userStorage";
 
-function useNotifications() {
+function useNotifications(session) {
   return useMemo(() => {
     try {
-      const library = JSON.parse(localStorage.getItem("dna_library") ?? "[]");
+      const library = getJSON(session, "dna_library", []);
       const batches = {};
       for (const e of library) {
         const key = (e.generatedAt ?? "").slice(0, 19);
@@ -28,7 +29,7 @@ function useNotifications() {
     } catch {
       return [];
     }
-  }, []);
+  }, [session]);
 }
 
 export default function DashboardHeader() {
@@ -38,7 +39,7 @@ export default function DashboardHeader() {
   const [profileOpen, setProfileOpen]       = useState(false);
   const [setupOpen, setSetupOpen]           = useState(false);
 
-  const notifications = useNotifications();
+  const notifications = useNotifications(session);
 
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
