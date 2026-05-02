@@ -4,6 +4,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Activity } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { getJSON, setJSON } from '../../../src/lib/userStorage';
 import dynamic from 'next/dynamic';
 
 import SynthesizerControlPanel from '../../../src/components/SynthesizerControlPanel';
@@ -18,6 +20,7 @@ const SynthesizerDNAViewer = dynamic(
 );
 
 export default function DNAGeneratorPage() {
+  const { data: session } = useSession();
   const [isGenerating, setIsGenerating] = useState(false);
   const [sequences, setSequences] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -66,14 +69,14 @@ export default function DNAGeneratorPage() {
         setSequences(generated);
 
         const cellTypeNames: Record<number, string> = { 0: 'K562', 1: 'HepG2', 2: 'GM12878', 3: 'hESCT0' };
-        const existing = JSON.parse(localStorage.getItem('dna_library') ?? '[]');
+        const existing = getJSON(session, 'dna_library', []);
         const newEntries = generated.map((seq: string, i: number) => ({
           id: `SEQ-${Date.now()}-${i}`,
           sequence: seq,
           cellType: cellTypeNames[cellType] ?? `Type ${cellType}`,
           generatedAt: new Date().toISOString(),
         }));
-        localStorage.setItem('dna_library', JSON.stringify([...newEntries, ...existing]));
+        setJSON(session, 'dna_library', [...newEntries, ...existing]);
       } else {
         throw new Error('Invalid response format');
       }

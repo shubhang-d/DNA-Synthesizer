@@ -3,7 +3,9 @@
 import { Check, ChevronRight, User2, Mail, Phone, X, CheckCircle2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { cn } from "../lib/utils";
+import { getJSON, setJSON } from "../lib/userStorage";
 
 // RGB values for the per-avatar color ring on the stage
 const AVATAR_RGB = {
@@ -118,7 +120,8 @@ const thumbnailVariants = {
 };
 
 export default function ProfileModal({ isOpen, onClose, onComplete, initialData }) {
-  const saved = (() => { try { return JSON.parse(localStorage.getItem("user_profile") ?? "{}"); } catch { return {}; } })();
+  const { data: session } = useSession();
+  const saved = getJSON(session, "user_profile", {});
   const [selectedAvatar, setSelectedAvatar] = useState(avatars.find((a) => a.id === saved.avatarId) ?? avatars[0]);
   const [username, setUsername] = useState(saved.username || initialData?.name || "");
   const [email, setEmail] = useState(saved.email || initialData?.email || "");
@@ -138,7 +141,7 @@ export default function ProfileModal({ isOpen, onClose, onComplete, initialData 
   const handleSubmit = () => {
     if (username.trim() && email.trim()) {
       const profile = { username: username.trim(), email: email.trim(), phone: phone.trim(), avatarId: selectedAvatar.id };
-      localStorage.setItem("user_profile", JSON.stringify(profile));
+      setJSON(session, "user_profile", profile);
       if (onComplete) onComplete(profile);
       setSaved_(true);
       setTimeout(() => { setSaved_(false); onClose(); }, 1200);

@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { getJSON, setJSON, removeItem } from "../lib/userStorage";
 import {
   Activity,
   BarChart3,
@@ -122,11 +124,8 @@ function countMotifs(seq) {
   }, 0);
 }
 
-function OverviewContent() {
-  const library = useState(() => {
-    try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]"); }
-    catch { return []; }
-  })[0];
+function OverviewContent({ session }) {
+  const library = useState(() => getJSON(session, "dna_library", []))[0];
 
   const stats = useMemo(() => {
     const total    = library.length;
@@ -261,12 +260,10 @@ function buildGcBins(values) {
 
 const TOOLTIP_STYLE = { contentStyle: { background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }, labelStyle: { color: "#94a3b8" } };
 
-function SyntheticVsRealContent() {
+function SyntheticVsRealContent({ session }) {
   const [cellType, setCellType] = useState("HEK293");
 
-  const library = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]"); } catch { return []; }
-  }, []);
+  const library = useMemo(() => getJSON(session, "dna_library", []), [session]);
 
   const analyzed = useMemo(() =>
     library.map((entry) => {
@@ -508,12 +505,9 @@ function AnalyzerContent() {
   );
 }
 
-function LibraryContent() {
+function LibraryContent({ session }) {
   const [query, setQuery] = useState("");
-  const [entries, setEntries] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]"); }
-    catch { return []; }
-  });
+  const [entries, setEntries] = useState(() => getJSON(session, "dna_library", []));
   const [copiedId, setCopiedId] = useState(null);
 
   const filtered = entries.filter((item) =>
@@ -529,12 +523,12 @@ function LibraryContent() {
   const handleDelete = (id) => {
     const updated = entries.filter((e) => e.id !== id);
     setEntries(updated);
-    localStorage.setItem("dna_library", JSON.stringify(updated));
+    setJSON(session, "dna_library", updated);
   };
 
   const handleClearAll = () => {
     setEntries([]);
-    localStorage.removeItem("dna_library");
+    removeItem(session, "dna_library");
   };
 
   return (
@@ -623,11 +617,8 @@ function Toggle({ label, description, checked, onChange }) {
   );
 }
 
-function SettingsContent() {
-  const [settings, setSettings] = useState(() => {
-    try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") }; }
-    catch { return DEFAULTS; }
-  });
+function SettingsContent({ session }) {
+  const [settings, setSettings] = useState(() => ({ ...DEFAULTS, ...getJSON(session, SETTINGS_KEY, {}) }));
   const [saved, setSaved] = useState(false);
 
   const update = (key) => (value) => {
@@ -636,12 +627,12 @@ function SettingsContent() {
   };
 
   const handleSave = () => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    setJSON(session, SETTINGS_KEY, settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const libraryCount = (() => { try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]").length; } catch { return 0; } })();
+  const libraryCount = getJSON(session, "dna_library", []).length;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -707,7 +698,7 @@ function SettingsContent() {
             <p className="text-xs text-slate-500 mt-0.5">{libraryCount} sequences stored locally</p>
           </div>
           <button
-            onClick={() => { if (confirm("Clear all stored sequences? This cannot be undone.")) { localStorage.removeItem("dna_library"); window.location.reload(); } }}
+            onClick={() => { if (confirm("Clear all stored sequences? This cannot be undone.")) { removeItem(session, "dna_library"); window.location.reload(); } }}
             className="text-xs text-red-400 hover:text-red-300 border border-red-900 hover:bg-red-900/20 px-3 py-1.5 rounded transition-colors"
           >
             Clear Library
@@ -783,7 +774,7 @@ function ScoreBar({ label, value, max = 100, color = "indigo" }) {
   );
 }
 
-function MutationPlaygroundContent() {
+function MutationPlaygroundContent({ session }) {
   const [bases, setBases] = useState(() =>
     "ATGCGTACGTATATAACGCAATGCGTAGCTAGCTGATCGATCG".split("")
   );
@@ -838,9 +829,9 @@ function MutationPlaygroundContent() {
   }
 
   function saveToLibrary() {
-    const lib = (() => { try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]"); } catch { return []; } })();
+    const lib = getJSON(session, "dna_library", []);
     lib.unshift({ id: `PLY-${Date.now().toString(36).toUpperCase()}`, sequence: seq, cellType: "playground", generatedAt: new Date().toISOString() });
-    localStorage.setItem("dna_library", JSON.stringify(lib));
+    setJSON(session, "dna_library", lib);
   }
 
   return (
@@ -968,26 +959,27 @@ function MutationPlaygroundContent() {
   );
 }
 
-function SectionContent({ slug }) {
-  if (slug === "overview") return <OverviewContent />;
+function SectionContent({ slug, session }) {
+  if (slug === "overview") return <OverviewContent session={session} />;
   if (slug === "dna-generator") return <DNAExperimentPanel />;
-  if (slug === "synthetic-vs-real") return <SyntheticVsRealContent />;
-  if (slug === "mutation-playground") return <MutationPlaygroundContent />;
+  if (slug === "synthetic-vs-real") return <SyntheticVsRealContent session={session} />;
+  if (slug === "mutation-playground") return <MutationPlaygroundContent session={session} />;
   if (slug === "analyzer") return <AnalyzerContent />;
-  if (slug === "library") return <LibraryContent />;
+  if (slug === "library") return <LibraryContent session={session} />;
   if (slug === "analytics") return <SyntheticDNAAnalytics />;
-  if (slug === "settings") return <SettingsContent />;
-  return <OverviewContent />;
+  if (slug === "settings") return <SettingsContent session={session} />;
+  return <OverviewContent session={session} />;
 }
 
 export default function DashboardSection({ slug = "overview" }) {
+  const { data: session } = useSession();
   const currentSlug = sections[slug] ? slug : "overview";
   const section = useMemo(() => sections[currentSlug], [currentSlug]);
 
   return (
     <div className="space-y-8">
       <SectionHeader section={section} />
-      <SectionContent slug={currentSlug} />
+      <SectionContent slug={currentSlug} session={session} />
     </div>
   );
 }

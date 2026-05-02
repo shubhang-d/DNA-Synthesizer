@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { getJSON } from "../lib/userStorage";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine,
   ResponsiveContainer, Cell,
@@ -212,10 +214,8 @@ function Stat({ label, value, icon: Icon, color }) {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export default function SyntheticDNAAnalytics() {
-  const [allEntries] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("dna_library") ?? "[]"); }
-    catch { return []; }
-  });
+  const { data: session } = useSession();
+  const [allEntries] = useState(() => getJSON(session, "dna_library", []));
 
   const [activeTab, setActiveTab]     = useState("motif");
   const [selectedBatch, setSelectedBatch] = useState(0);
